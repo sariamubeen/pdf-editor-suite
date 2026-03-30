@@ -56,24 +56,15 @@ chmod +x setup.sh generate-cert.sh
 
 The setup script will detect your server's private IP and display it. You can access Stirling-PDF directly at `http://<SERVER_IP>:8080`, or optionally add a proxy host in Nginx Proxy Manager. See [Server Setup Guide](docs/SERVER-SETUP.md).
 
-### Windows Client — One-Click Setup (1 minute)
+### Windows Client - One-Click Setup (30 seconds)
 
-1. Copy the entire `pdf-editor-suite/` folder to the Windows machine
-2. Right-click `Setup.ps1` → **Run with PowerShell as Administrator**
-3. The script will auto-discover the server, configure everything, and register the handler
+1. Copy the `pdf-editor-suite/` folder to the Windows machine
+2. **Double-click `INSTALL.bat`** - that's it!
+3. Enter your server IP when prompted (e.g., `http://192.168.1.50:8080`)
 
-```powershell
-# Or from PowerShell (Admin):
-.\Setup.ps1
+To uninstall: double-click `UNINSTALL.bat`.
 
-# Specify server directly:
-.\Setup.ps1 -ServerURL "http://192.168.1.50:8080"
-
-# Uninstall:
-.\Setup.ps1 -Uninstall
-```
-
-PDFs will open directly in the browser — no login prompts (login is disabled by default for private networks).
+PDFs will open directly in the browser - no login prompts (login is disabled by default for private networks).
 
 See [Client Setup Guide](docs/CLIENT-SETUP.md).
 
@@ -131,7 +122,9 @@ The script is idempotent, logs to Windows Event Log (`Application → PDFEditorS
 pdf-editor-suite/
 ├── README.md                         # This file
 ├── LICENSE
-├── Setup.ps1                         # ⚡ One-click Windows setup (run this!)
+├── INSTALL.bat                       # Double-click to install on Windows
+├── UNINSTALL.bat                     # Double-click to uninstall
+├── Setup.ps1                         # PowerShell setup (alternative)
 ├── .gitignore
 ├── server/
 │   ├── docker-compose.yml            # Stirling-PDF container
