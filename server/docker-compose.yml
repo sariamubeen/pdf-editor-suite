@@ -13,7 +13,7 @@ services:
     restart: unless-stopped
 
     ports:
-      - "127.0.0.1:8080:8080"   # Bind to localhost only — NPM handles public access
+      - "8080:8080"   # Bind to localhost only — NPM handles public access
 
     volumes:
       - stirling-data:/usr/share/tessdata          # OCR language packs
