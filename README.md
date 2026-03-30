@@ -47,7 +47,7 @@ Double-click any PDF → browser opens → edit, annotate, sign → download the
 ### Server (5 minutes)
 
 ```bash
-git clone https://github.com/YOUR_ORG/pdf-editor-suite.git
+git clone https://github.com/sariamubeen/pdf-editor-suite.git
 cd pdf-editor-suite/server
 chmod +x setup.sh generate-cert.sh
 ./setup.sh
