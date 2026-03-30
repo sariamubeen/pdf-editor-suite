@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Opens a PDF file in Stirling-PDF via the default web browser.
 
@@ -23,7 +23,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# ── Load configuration ───────────────────────────────────────────────────────
+# -- Load configuration -------------------------------------------------------
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $ConfigFile = Join-Path $ScriptDir "config.ps1"
@@ -41,7 +41,7 @@ if (-not (Test-Path $ConfigFile)) {
 
 . $ConfigFile
 
-# ── Validate the PDF file ────────────────────────────────────────────────────
+# -- Validate the PDF file ----------------------------------------------------
 
 if (-not (Test-Path -LiteralPath $PdfPath)) {
     Add-Type -AssemblyName System.Windows.Forms
@@ -70,17 +70,17 @@ if ($Extension -ne ".pdf") {
 $PdfPath = (Resolve-Path -LiteralPath $PdfPath).Path
 $FileName = [System.IO.Path]::GetFileName($PdfPath)
 
-# ── Copy file path to clipboard ──────────────────────────────────────────────
+# -- Copy file path to clipboard ----------------------------------------------
 
 try {
     Add-Type -AssemblyName System.Windows.Forms
     [System.Windows.Forms.Clipboard]::SetText($PdfPath)
 }
 catch {
-    # Clipboard access can fail in some session types — non-fatal
+    # Clipboard access can fail in some session types - non-fatal
 }
 
-# ── Auto-login if server requires authentication ─────────────────────────────
+# -- Auto-login if server requires authentication -----------------------------
 
 $LaunchURL = $PDFEditorURL
 
@@ -131,11 +131,11 @@ if ($RequireLogin -eq $true) {
         }
     }
     catch {
-        # Auto-login failed — fall back to opening the URL directly (user will see login page)
+        # Auto-login failed - fall back to opening the URL directly (user will see login page)
     }
 }
 
-# ── Launch browser ───────────────────────────────────────────────────────────
+# -- Launch browser -----------------------------------------------------------
 
 try {
     Start-Process "$LaunchURL"
@@ -151,14 +151,14 @@ catch {
     exit 1
 }
 
-# ── Show notification ────────────────────────────────────────────────────────
+# -- Show notification --------------------------------------------------------
 
 try {
     $Notification = New-Object System.Windows.Forms.NotifyIcon
     $Notification.Icon = [System.Drawing.SystemIcons]::Information
     $Notification.Visible = $true
     $Notification.BalloonTipTitle = "PDF Editor Suite"
-    $Notification.BalloonTipText = "Opening '$FileName' — file path copied to clipboard."
+    $Notification.BalloonTipText = "Opening '$FileName' - file path copied to clipboard."
     $Notification.BalloonTipIcon = [System.Windows.Forms.ToolTipIcon]::Info
     $Notification.ShowBalloonTip(4000)
 
@@ -167,7 +167,7 @@ try {
     $Notification.Dispose()
 }
 catch {
-    # Notification failed — non-fatal, browser already opened
+    # Notification failed - non-fatal, browser already opened
 }
 
 exit 0

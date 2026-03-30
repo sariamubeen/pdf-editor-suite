@@ -1,0 +1,6 @@
+# Force CRLF line endings for PowerShell scripts (required on Windows)
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+
+# Keep Unix line endings for shell scripts
+*.sh text eol=lf

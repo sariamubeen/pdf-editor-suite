@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Reverts the .pdf file association to the previous handler.
 
@@ -12,7 +12,7 @@
     Requires: Administrator privileges.
 #>
 
-# ── Require admin ────────────────────────────────────────────────────────────
+# -- Require admin ------------------------------------------------------------
 
 $IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole]::Administrator
@@ -28,7 +28,7 @@ if (-not $IsAdmin) {
 
 $ErrorActionPreference = "Stop"
 
-# ── Load configuration ───────────────────────────────────────────────────────
+# -- Load configuration -------------------------------------------------------
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $ConfigFile = Join-Path $ScriptDir "config.ps1"
@@ -44,13 +44,13 @@ else {
     . $ConfigFile
 }
 
-# ── Banner ───────────────────────────────────────────────────────────────────
+# -- Banner -------------------------------------------------------------------
 
 Write-Host ""
-Write-Host "  PDF Editor Suite — Uninstall" -ForegroundColor Cyan
+Write-Host "  PDF Editor Suite - Uninstall" -ForegroundColor Cyan
 Write-Host ""
 
-# ── Restore previous .pdf handler ────────────────────────────────────────────
+# -- Restore previous .pdf handler --------------------------------------------
 
 $ExtPath = "HKLM:\SOFTWARE\Classes\.pdf"
 
@@ -63,13 +63,13 @@ if (Test-Path $ExtPath) {
         Write-Host "  [OK] Restored previous handler: $Previous" -ForegroundColor Green
     }
     else {
-        # Clear association — Windows will prompt user to pick an app
+        # Clear association - Windows will prompt user to pick an app
         Set-ItemProperty -Path $ExtPath -Name "(Default)" -Value ""
         Write-Host "  [OK] Cleared .pdf association (Windows will prompt user)" -ForegroundColor Green
     }
 }
 
-# ── Remove ProgId ────────────────────────────────────────────────────────────
+# -- Remove ProgId ------------------------------------------------------------
 
 $ProgIdPath = "HKLM:\SOFTWARE\Classes\$ProgId"
 
@@ -81,12 +81,12 @@ else {
     Write-Host "  [--] ProgId not found (already removed)" -ForegroundColor DarkGray
 }
 
-# ── Remove ftype ─────────────────────────────────────────────────────────────
+# -- Remove ftype -------------------------------------------------------------
 
 cmd /c "ftype $ProgId=" 2>$null | Out-Null
 Write-Host "  [OK] Removed ftype entry" -ForegroundColor Green
 
-# ── Refresh shell ────────────────────────────────────────────────────────────
+# -- Refresh shell ------------------------------------------------------------
 
 try {
     $ShellCode = 'using System; using System.Runtime.InteropServices; public class ShellRefreshUninstall { [DllImport("shell32.dll")] public static extern void SHChangeNotify(int e, int f, IntPtr i1, IntPtr i2); public static void Refresh() { SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero); } }'
@@ -97,7 +97,7 @@ catch { }
 
 Write-Host "  [OK] Shell cache refreshed" -ForegroundColor Green
 
-# ── Optionally remove install directory ──────────────────────────────────────
+# -- Optionally remove install directory --------------------------------------
 
 if (Test-Path $InstallDir) {
     Write-Host ""
@@ -111,7 +111,7 @@ if (Test-Path $InstallDir) {
     }
 }
 
-# ── Done ─────────────────────────────────────────────────────────────────────
+# -- Done ---------------------------------------------------------------------
 
 Write-Host ""
 Write-Host "  Uninstall complete. PDF file association has been reverted." -ForegroundColor Green

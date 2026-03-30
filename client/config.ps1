@@ -1,5 +1,5 @@
-# =============================================================================
-# PDF Editor Suite — Client Configuration
+﻿# =============================================================================
+# PDF Editor Suite - Client Configuration
 # =============================================================================
 # Edit this file ONCE before deploying to Windows machines.
 # All other scripts read from this file.
@@ -13,7 +13,7 @@
 #   $PDFEditorURL = "https://pdf.yourdomain.com"
 $PDFEditorURL = "http://YOUR_SERVER_IP:8080"
 
-# Authentication — set to $true if your server requires login
+# Authentication - set to $true if your server requires login
 # If $false, PDFs open directly without any login prompt
 $RequireLogin = $false
 

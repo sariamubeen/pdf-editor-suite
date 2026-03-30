@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Validates the PDF Editor Suite client installation on a Windows machine.
 
@@ -31,7 +31,7 @@ param(
 
 $ErrorActionPreference = "SilentlyContinue"
 
-# ── Load config ──────────────────────────────────────────────────────────────
+# -- Load config --------------------------------------------------------------
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 
@@ -57,7 +57,7 @@ if (-not $ConfigLoaded) {
     $DisplayName = "PDF Editor Suite (Browser)"
 }
 
-# ── Test framework ───────────────────────────────────────────────────────────
+# -- Test framework -----------------------------------------------------------
 
 $PassCount = 0
 $FailCount = 0
@@ -70,21 +70,21 @@ function Test-Warn  { param([string]$Msg) $script:WarnCount++; Write-Host "  [WA
 function Test-Skip  { param([string]$Msg) $script:SkipCount++; Write-Host "  [SKIP] $Msg" -ForegroundColor DarkGray }
 function Test-Info  { param([string]$Msg) Write-Host "         $Msg" -ForegroundColor DarkGray }
 
-# ── Banner ───────────────────────────────────────────────────────────────────
+# -- Banner -------------------------------------------------------------------
 
 Write-Host ""
-Write-Host "  ╔══════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "  ║  PDF Editor Suite — Client Validation                ║" -ForegroundColor Cyan
-Write-Host "  ╚══════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+Write-Host "  +======================================================+" -ForegroundColor Cyan
+Write-Host "  |  PDF Editor Suite - Client Validation                |" -ForegroundColor Cyan
+Write-Host "  +======================================================+" -ForegroundColor Cyan
 Write-Host ""
 
 $IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole]::Administrator
 )
 if ($IsAdmin) {
-    Test-Info "Running as Administrator — full checks enabled"
+    Test-Info "Running as Administrator - full checks enabled"
 } else {
-    Test-Info "Running as standard user — some checks limited"
+    Test-Info "Running as standard user - some checks limited"
 }
 Write-Host ""
 
@@ -123,7 +123,7 @@ Write-Host ""
 Write-Host "  -- Configuration --" -ForegroundColor Cyan
 
 if ($PDFEditorURL -match "(pdf\.example\.com|YOUR_SERVER_IP)") {
-    Test-Fail "Server URL is still the default — run Setup.ps1 or edit config.ps1"
+    Test-Fail "Server URL is still the default - run Setup.ps1 or edit config.ps1"
 } elseif ($PDFEditorURL -match "^https://") {
     Test-Pass "Server URL configured: $PDFEditorURL"
 } elseif ($PDFEditorURL -match "^http://") {
@@ -164,7 +164,7 @@ if ($CurrentAssoc -eq $ProgId) {
     Test-Pass ".pdf association set to $ProgId"
 } else {
     Test-Warn ".pdf association is '$CurrentAssoc' (expected: $ProgId)"
-    Test-Info "This is normal on Windows 10/11 — set via Settings > Default apps"
+    Test-Info "This is normal on Windows 10/11 - set via Settings > Default apps"
 }
 
 # Previous handler backup
@@ -203,7 +203,7 @@ if ($PDFEditorURL -ne "https://pdf.example.com") {
     catch [System.Net.WebException] {
         $StatusCode = $_.Exception.Response.StatusCode.value__
         if ($StatusCode) {
-            Test-Warn "Server returned HTTP $StatusCode (may require auth — that's OK)"
+            Test-Warn "Server returned HTTP $StatusCode (may require auth - that's OK)"
         } else {
             Test-Fail "Cannot reach server: $($_.Exception.Message)"
         }
@@ -254,10 +254,10 @@ Write-Host "  -- PowerShell Environment --" -ForegroundColor Cyan
 # Execution policy
 $Policy = Get-ExecutionPolicy -Scope LocalMachine
 if ($Policy -eq "Restricted") {
-    Test-Fail "Execution policy is Restricted — scripts cannot run"
+    Test-Fail "Execution policy is Restricted - scripts cannot run"
     Test-Info "Fix: Set-ExecutionPolicy RemoteSigned -Scope LocalMachine"
 } elseif ($Policy -eq "AllSigned") {
-    Test-Warn "Execution policy is AllSigned — unsigned scripts may be blocked"
+    Test-Warn "Execution policy is AllSigned - unsigned scripts may be blocked"
 } else {
     Test-Pass "Execution policy: $Policy"
 }
@@ -323,7 +323,7 @@ Write-Host ""
 
 $Total = $PassCount + $FailCount + $WarnCount + $SkipCount
 
-Write-Host "  ── Summary ───────────────────────────────────────────" -ForegroundColor Cyan
+Write-Host "  -- Summary -------------------------------------------" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  $PassCount passed  " -ForegroundColor Green -NoNewline
 Write-Host "$FailCount failed  " -ForegroundColor Red -NoNewline

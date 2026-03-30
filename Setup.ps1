@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     One-click setup for PDF Editor Suite on Windows.
 
@@ -45,7 +45,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# ── Constants ────────────────────────────────────────────────────────────────
+# -- Constants ----------------------------------------------------------------
 
 $ProgId       = "PDFEditorSuite.PDF"
 $DisplayName  = "PDF Editor Suite (Browser)"
@@ -53,7 +53,7 @@ $InstallDir   = "$env:ProgramFiles\PDFEditorSuite"
 $ScriptDir    = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $ClientDir    = Join-Path $ScriptDir "client"
 
-# ── Shell refresh helper ────────────────────────────────────────────────────
+# -- Shell refresh helper ----------------------------------------------------
 
 function Invoke-ShellRefresh {
     try {
@@ -63,7 +63,7 @@ function Invoke-ShellRefresh {
     } catch { }
 }
 
-# ── Require admin ────────────────────────────────────────────────────────────
+# -- Require admin ------------------------------------------------------------
 
 $IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole]::Administrator
@@ -79,16 +79,16 @@ if (-not $IsAdmin) {
     exit 1
 }
 
-# ── Banner ───────────────────────────────────────────────────────────────────
+# -- Banner -------------------------------------------------------------------
 
 Write-Host ""
-Write-Host "  ╔══════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "  ║  PDF Editor Suite — One-Click Setup                      ║" -ForegroundColor Cyan
-Write-Host "  ║                                          by sariamubeen ║" -ForegroundColor Cyan
-Write-Host "  ╚══════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+Write-Host "  +==========================================================+" -ForegroundColor Cyan
+Write-Host "  |  PDF Editor Suite - One-Click Setup                      |" -ForegroundColor Cyan
+Write-Host "  |                                          by sariamubeen |" -ForegroundColor Cyan
+Write-Host "  +==========================================================+" -ForegroundColor Cyan
 Write-Host ""
 
-# ── Uninstall mode ───────────────────────────────────────────────────────────
+# -- Uninstall mode -----------------------------------------------------------
 
 if ($Uninstall) {
     Write-Host "  Uninstalling PDF Editor Suite..." -ForegroundColor Yellow
@@ -129,7 +129,7 @@ if ($Uninstall) {
     exit 0
 }
 
-# ── Verify client folder exists ──────────────────────────────────────────────
+# -- Verify client folder exists ----------------------------------------------
 
 if (-not (Test-Path $ClientDir)) {
     Write-Host "  ERROR: client/ folder not found at $ClientDir" -ForegroundColor Red
@@ -139,9 +139,9 @@ if (-not (Test-Path $ClientDir)) {
     exit 1
 }
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 # STEP 1: Find the server
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 
 Write-Host "  [1/6] Finding Stirling-PDF server..." -ForegroundColor Yellow
 
@@ -226,9 +226,9 @@ $ServerURL = $ServerURL.TrimEnd('/')
 Write-Host "         Server: $ServerURL" -ForegroundColor Green
 Write-Host ""
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 # STEP 2: Test connectivity
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 
 Write-Host "  [2/6] Testing server connectivity..." -ForegroundColor Yellow
 
@@ -266,9 +266,9 @@ catch {
 
 Write-Host ""
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 # STEP 3: Handle credentials (if login required)
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 
 Write-Host "  [3/6] Configuring authentication..." -ForegroundColor Yellow
 
@@ -287,22 +287,22 @@ if ($LoginRequired) {
         $LoginBody = @{ username = $Username; password = $Password }
         $TestSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
         Invoke-WebRequest -Uri "$ServerURL/login" -Method POST -Body $LoginBody -WebSession $TestSession -UseBasicParsing -MaximumRedirection 5 -TimeoutSec 10 -ErrorAction Stop | Out-Null
-        Write-Host "         Login successful — credentials verified" -ForegroundColor Green
+        Write-Host "         Login successful - credentials verified" -ForegroundColor Green
     }
     catch {
-        Write-Host "         WARNING: Login test failed — check credentials" -ForegroundColor Yellow
+        Write-Host "         WARNING: Login test failed - check credentials" -ForegroundColor Yellow
         Write-Host "         ($($_.Exception.Message))" -ForegroundColor DarkGray
     }
 }
 else {
-    Write-Host "         No login required — PDFs will open directly" -ForegroundColor Green
+    Write-Host "         No login required - PDFs will open directly" -ForegroundColor Green
 }
 
 Write-Host ""
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 # STEP 4: Write config and install files
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 
 Write-Host "  [4/6] Installing files..." -ForegroundColor Yellow
 
@@ -314,7 +314,7 @@ if (-not (Test-Path $InstallDir)) {
 $LoginRequiredStr = if ($LoginRequired) { '$true' } else { '$false' }
 $ConfigLines = @(
     '# ============================================================================='
-    '# PDF Editor Suite — Client Configuration (auto-generated by Setup.ps1)'
+    '# PDF Editor Suite - Client Configuration (auto-generated by Setup.ps1)'
     '# ============================================================================='
     ''
     "`$PDFEditorURL = `"$ServerURL`""
@@ -350,9 +350,9 @@ foreach ($File in $FilesToCopy) {
 
 Write-Host ""
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 # STEP 5: Register file association
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 
 Write-Host "  [5/6] Registering .pdf file association..." -ForegroundColor Yellow
 
@@ -390,9 +390,9 @@ Invoke-ShellRefresh
 
 Write-Host ""
 
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 # STEP 6: Validate
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 
 Write-Host "  [6/6] Validating installation..." -ForegroundColor Yellow
 
@@ -423,27 +423,27 @@ if ($ServerReachable) {
 
 Write-Host ""
 
-# ── Done ─────────────────────────────────────────────────────────────────────
+# -- Done ---------------------------------------------------------------------
 
 if ($AllGood) {
-    Write-Host "  ╔══════════════════════════════════════════════════════════╗" -ForegroundColor Green
-    Write-Host "  ║  Setup Complete!                          sariamubeen   ║" -ForegroundColor Green
-    Write-Host "  ║                                                          ║" -ForegroundColor Green
-    Write-Host "  ║  Double-click any .pdf file to open it in the browser.   ║" -ForegroundColor Green
-    Write-Host "  ║                                                          ║" -ForegroundColor Green
-    Write-Host "  ║  Server : $ServerURL" -ForegroundColor Green
+    Write-Host "  +==========================================================+" -ForegroundColor Green
+    Write-Host "  |  Setup Complete!                          sariamubeen   |" -ForegroundColor Green
+    Write-Host "  |                                                          |" -ForegroundColor Green
+    Write-Host "  |  Double-click any .pdf file to open it in the browser.   |" -ForegroundColor Green
+    Write-Host "  |                                                          |" -ForegroundColor Green
+    Write-Host "  |  Server : $ServerURL" -ForegroundColor Green
     if ($LoginRequired) {
-        Write-Host "  ║  Auth   : Auto-login enabled (no prompts)" -ForegroundColor Green
+        Write-Host "  |  Auth   : Auto-login enabled (no prompts)" -ForegroundColor Green
     } else {
-        Write-Host "  ║  Auth   : No login required" -ForegroundColor Green
+        Write-Host "  |  Auth   : No login required" -ForegroundColor Green
     }
-    Write-Host "  ║                                                          ║" -ForegroundColor Green
-    Write-Host "  ║  To uninstall: .\Setup.ps1 -Uninstall                    ║" -ForegroundColor Green
-    Write-Host "  ╚══════════════════════════════════════════════════════════╝" -ForegroundColor Green
+    Write-Host "  |                                                          |" -ForegroundColor Green
+    Write-Host "  |  To uninstall: .\Setup.ps1 -Uninstall                    |" -ForegroundColor Green
+    Write-Host "  +==========================================================+" -ForegroundColor Green
 } else {
-    Write-Host "  ╔══════════════════════════════════════════════════════════╗" -ForegroundColor Yellow
-    Write-Host "  ║  Setup finished with warnings — review output above.     ║" -ForegroundColor Yellow
-    Write-Host "  ╚══════════════════════════════════════════════════════════╝" -ForegroundColor Yellow
+    Write-Host "  +==========================================================+" -ForegroundColor Yellow
+    Write-Host "  |  Setup finished with warnings - review output above.     |" -ForegroundColor Yellow
+    Write-Host "  +==========================================================+" -ForegroundColor Yellow
 }
 
 Write-Host ""

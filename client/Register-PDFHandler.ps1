@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Registers PDF Editor Suite as the handler for .pdf files on Windows.
 
@@ -13,7 +13,7 @@
     Tested:   Windows 10, Windows 11, Windows Server 2019/2022/2025.
 #>
 
-# ── Require admin ────────────────────────────────────────────────────────────
+# -- Require admin ------------------------------------------------------------
 
 $IsAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole]::Administrator
@@ -32,7 +32,7 @@ if (-not $IsAdmin) {
 
 $ErrorActionPreference = "Stop"
 
-# ── Load configuration ───────────────────────────────────────────────────────
+# -- Load configuration -------------------------------------------------------
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $ConfigFile = Join-Path $ScriptDir "config.ps1"
@@ -45,7 +45,7 @@ if (-not (Test-Path $ConfigFile)) {
 
 . $ConfigFile
 
-# ── Validate config ──────────────────────────────────────────────────────────
+# -- Validate config ----------------------------------------------------------
 
 if ($PDFEditorURL -match "(pdf\.example\.com|YOUR_SERVER_IP)") {
     Write-Host ""
@@ -57,16 +57,16 @@ if ($PDFEditorURL -match "(pdf\.example\.com|YOUR_SERVER_IP)") {
     if ($continue -ne "y") { exit 0 }
 }
 
-# ── Banner ───────────────────────────────────────────────────────────────────
+# -- Banner -------------------------------------------------------------------
 
 Write-Host ""
-Write-Host "  ╔══════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "  ║  PDF Editor Suite — Windows Client Setup             ║" -ForegroundColor Cyan
-Write-Host "  ║                                      by sariamubeen ║" -ForegroundColor Cyan
-Write-Host "  ╚══════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+Write-Host "  +======================================================+" -ForegroundColor Cyan
+Write-Host "  |  PDF Editor Suite - Windows Client Setup             |" -ForegroundColor Cyan
+Write-Host "  |                                      by sariamubeen |" -ForegroundColor Cyan
+Write-Host "  +======================================================+" -ForegroundColor Cyan
 Write-Host ""
 
-# ── Step 1: Create install directory ─────────────────────────────────────────
+# -- Step 1: Create install directory -----------------------------------------
 
 Write-Host "[1/5] Creating install directory..." -ForegroundColor Yellow
 if (-not (Test-Path $InstallDir)) {
@@ -74,7 +74,7 @@ if (-not (Test-Path $InstallDir)) {
 }
 Write-Host "       $InstallDir" -ForegroundColor Green
 
-# ── Step 2: Copy scripts ────────────────────────────────────────────────────
+# -- Step 2: Copy scripts ----------------------------------------------------
 
 Write-Host "[2/5] Installing scripts..." -ForegroundColor Yellow
 
@@ -91,7 +91,7 @@ foreach ($File in $FilesToCopy) {
     Write-Host "       Installed $File" -ForegroundColor Green
 }
 
-# ── Step 3: Register ProgId in registry ──────────────────────────────────────
+# -- Step 3: Register ProgId in registry --------------------------------------
 
 Write-Host "[3/5] Registering file handler..." -ForegroundColor Yellow
 
@@ -112,7 +112,7 @@ Set-ItemProperty -Path $CommandPath -Name "(Default)" -Value "`"$BatchPath`" `"%
 
 Write-Host "       Registered ProgId: $ProgId" -ForegroundColor Green
 
-# ── Step 4: Associate .pdf extension ────────────────────────────────────────
+# -- Step 4: Associate .pdf extension ----------------------------------------
 
 Write-Host "[4/5] Setting .pdf file association..." -ForegroundColor Yellow
 
@@ -138,7 +138,7 @@ cmd /c "assoc .pdf=$ProgId" 2>$null | Out-Null
 
 Write-Host "       .pdf → $ProgId" -ForegroundColor Green
 
-# ── Step 5: Refresh Windows Shell ────────────────────────────────────────────
+# -- Step 5: Refresh Windows Shell --------------------------------------------
 
 Write-Host "[5/5] Refreshing shell..." -ForegroundColor Yellow
 
@@ -152,19 +152,19 @@ catch {
     Write-Host "       Shell refresh skipped (non-critical)" -ForegroundColor DarkGray
 }
 
-# ── Done ─────────────────────────────────────────────────────────────────────
+# -- Done ---------------------------------------------------------------------
 
 Write-Host ""
-Write-Host "  ╔══════════════════════════════════════════════════════╗" -ForegroundColor Green
-Write-Host "  ║  Setup Complete!                       sariamubeen  ║" -ForegroundColor Green
-Write-Host "  ║                                                      ║" -ForegroundColor Green
-Write-Host "  ║  Double-clicking any .pdf file will now open         ║" -ForegroundColor Green
-Write-Host "  ║  the browser-based PDF editor.                       ║" -ForegroundColor Green
-Write-Host "  ║                                                      ║" -ForegroundColor Green
-Write-Host "  ║  Server: $PDFEditorURL" -ForegroundColor Green
-Write-Host "  ║                                                      ║" -ForegroundColor Green
-Write-Host "  ║  To revert: run Unregister-PDFHandler.ps1 as Admin   ║" -ForegroundColor Green
-Write-Host "  ╚══════════════════════════════════════════════════════╝" -ForegroundColor Green
+Write-Host "  +======================================================+" -ForegroundColor Green
+Write-Host "  |  Setup Complete!                       sariamubeen  |" -ForegroundColor Green
+Write-Host "  |                                                      |" -ForegroundColor Green
+Write-Host "  |  Double-clicking any .pdf file will now open         |" -ForegroundColor Green
+Write-Host "  |  the browser-based PDF editor.                       |" -ForegroundColor Green
+Write-Host "  |                                                      |" -ForegroundColor Green
+Write-Host "  |  Server: $PDFEditorURL" -ForegroundColor Green
+Write-Host "  |                                                      |" -ForegroundColor Green
+Write-Host "  |  To revert: run Unregister-PDFHandler.ps1 as Admin   |" -ForegroundColor Green
+Write-Host "  +======================================================+" -ForegroundColor Green
 Write-Host ""
 Write-Host "  NOTE (Windows 10/11):" -ForegroundColor DarkYellow
 Write-Host "  Windows may also require manually setting the default app:" -ForegroundColor DarkYellow

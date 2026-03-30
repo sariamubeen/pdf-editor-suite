@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Deploys PDF Editor Suite to domain-joined machines via Group Policy.
 
@@ -7,7 +7,7 @@
     SCCM/Intune. It silently installs the PDF Editor Suite file handler
     on the machine without user interaction.
 
-    It is idempotent — safe to run multiple times (skips if already installed).
+    It is idempotent - safe to run multiple times (skips if already installed).
 
 .PARAMETER ServerURL
     Override the server URL from config.ps1. Useful when deploying via GPO
@@ -20,7 +20,7 @@
     Remove PDF Editor Suite from the machine.
 
 .EXAMPLE
-    # GPO Startup Script — install with default config
+    # GPO Startup Script - install with default config
     Deploy-PDFEditorSuite.ps1
 
     # GPO with custom URL
@@ -31,7 +31,7 @@
 
 .NOTES
     Part of PDF Editor Suite by sariamubeen.
-    Runs as SYSTEM under GPO — no user interaction.
+    Runs as SYSTEM under GPO - no user interaction.
     Logs to Windows Event Log: Application → PDFEditorSuite
 #>
 
@@ -43,7 +43,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# ── Constants ────────────────────────────────────────────────────────────────
+# -- Constants ----------------------------------------------------------------
 
 $ProgId       = "PDFEditorSuite.PDF"
 $DisplayName  = "PDF Editor Suite (Browser)"
@@ -51,7 +51,7 @@ $InstallDir   = "$env:ProgramFiles\PDFEditorSuite"
 $EventSource  = "PDFEditorSuite"
 $LogName      = "Application"
 
-# ── Logging ──────────────────────────────────────────────────────────────────
+# -- Logging ------------------------------------------------------------------
 
 function Initialize-EventLog {
     try {
@@ -60,7 +60,7 @@ function Initialize-EventLog {
         }
     }
     catch {
-        # Non-fatal — fall back to console only
+        # Non-fatal - fall back to console only
     }
 }
 
@@ -93,7 +93,7 @@ function Write-Log {
 
 Initialize-EventLog
 
-# ── Uninstall Mode ───────────────────────────────────────────────────────────
+# -- Uninstall Mode -----------------------------------------------------------
 
 if ($Uninstall) {
     Write-Log "Starting uninstall..."
@@ -140,19 +140,19 @@ if ($Uninstall) {
     exit 0
 }
 
-# ── Install Mode ─────────────────────────────────────────────────────────────
+# -- Install Mode -------------------------------------------------------------
 
 # Check if already installed
 $AlreadyInstalled = (Test-Path $InstallDir) -and (Test-Path (Join-Path $InstallDir "open-pdf.bat"))
 
 if ($AlreadyInstalled -and -not $Force) {
-    Write-Log "Already installed at $InstallDir — skipping (use -Force to reinstall)"
+    Write-Log "Already installed at $InstallDir - skipping (use -Force to reinstall)"
     exit 0
 }
 
 Write-Log "Starting deployment..."
 
-# ── Locate source files ─────────────────────────────────────────────────────
+# -- Locate source files -----------------------------------------------------
 
 # Source can be: same directory as this script, or a network share specified via GPO
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
@@ -166,20 +166,20 @@ foreach ($File in $SourceFiles) {
     }
 }
 
-# ── Create install directory ─────────────────────────────────────────────────
+# -- Create install directory -------------------------------------------------
 
 if (-not (Test-Path $InstallDir)) {
     New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
 }
 
-# ── Copy files ───────────────────────────────────────────────────────────────
+# -- Copy files ---------------------------------------------------------------
 
 foreach ($File in $SourceFiles) {
     Copy-Item -Path (Join-Path $ScriptDir $File) -Destination (Join-Path $InstallDir $File) -Force
 }
 Write-Log "Copied scripts to $InstallDir"
 
-# ── Override server URL if specified ─────────────────────────────────────────
+# -- Override server URL if specified -----------------------------------------
 
 if ($ServerURL -ne "") {
     $ConfigPath = Join-Path $InstallDir "config.ps1"
@@ -189,7 +189,7 @@ if ($ServerURL -ne "") {
     Write-Log "Set server URL to $ServerURL"
 }
 
-# ── Register file association ────────────────────────────────────────────────
+# -- Register file association ------------------------------------------------
 
 $BatchPath = Join-Path $InstallDir "open-pdf.bat"
 $ProgIdPath = "HKLM:\SOFTWARE\Classes\$ProgId"
@@ -204,7 +204,7 @@ Set-ItemProperty -Path $CommandPath -Name "(Default)" -Value "`"$BatchPath`" `"%
 
 Write-Log "Registered ProgId: $ProgId"
 
-# ── Set .pdf association ─────────────────────────────────────────────────────
+# -- Set .pdf association -----------------------------------------------------
 
 $ExtPath = "HKLM:\SOFTWARE\Classes\.pdf"
 if (-not (Test-Path $ExtPath)) {
@@ -224,7 +224,7 @@ cmd /c "assoc .pdf=$ProgId" 2>$null | Out-Null
 
 Write-Log "Set .pdf → $ProgId"
 
-# ── Refresh shell ────────────────────────────────────────────────────────────
+# -- Refresh shell ------------------------------------------------------------
 
 try {
     $code = 'using System; using System.Runtime.InteropServices; public class SR2 { [DllImport("shell32.dll")] public static extern void SHChangeNotify(int e, int f, IntPtr i1, IntPtr i2); public static void R() { SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero); } }'
@@ -232,14 +232,14 @@ try {
     [SR2]::R()
 } catch { }
 
-# ── Generate Default App Associations XML ────────────────────────────────────
+# -- Generate Default App Associations XML ------------------------------------
 
 $AssocXML = Join-Path $InstallDir "DefaultAssociations.xml"
 $XMLContent = "<?xml version=`"1.0`" encoding=`"UTF-8`"?>`r`n<DefaultAssociations>`r`n  <Association Identifier=`".pdf`" ProgId=`"$ProgId`" ApplicationName=`"$DisplayName`" />`r`n</DefaultAssociations>"
 Set-Content -Path $AssocXML -Value $XMLContent -Encoding UTF8
 Write-Log "Generated DefaultAssociations.xml at $AssocXML"
 
-# ── Done ─────────────────────────────────────────────────────────────────────
+# -- Done ---------------------------------------------------------------------
 
-Write-Log "Deployment complete — installed to $InstallDir"
+Write-Log "Deployment complete - installed to $InstallDir"
 exit 0
