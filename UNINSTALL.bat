@@ -1,6 +1,6 @@
 @echo off
 REM ============================================================================
-REM  PDF Editor Suite - Uninstaller
+REM  PDF Editor Suite - Uninstaller (self-contained)
 REM  by sariamubeen
 REM ============================================================================
 
@@ -22,6 +22,7 @@ set "INSTALL_DIR=%ProgramFiles%\PDFEditorSuite"
 set "PROGID=PDFEditorSuite.PDF"
 
 :: Restore previous handler
+set "PREV_HANDLER="
 for /f "tokens=2*" %%a in ('reg query "HKLM\SOFTWARE\Classes\.pdf" /v "PDFEditorSuite_PreviousHandler" 2^>nul ^| find "REG_SZ"') do set "PREV_HANDLER=%%b"
 if defined PREV_HANDLER (
     reg add "HKLM\SOFTWARE\Classes\.pdf" /ve /d "%PREV_HANDLER%" /f >nul 2>&1
@@ -34,11 +35,10 @@ if defined PREV_HANDLER (
 
 :: Remove ProgId
 reg delete "HKLM\SOFTWARE\Classes\%PROGID%" /f >nul 2>&1
-echo   [OK] Removed ProgId
+echo   [OK] Removed file handler
 
 :: Remove ftype
 ftype %PROGID%= >nul 2>&1
-echo   [OK] Removed ftype
 
 :: Remove install directory
 if exist "%INSTALL_DIR%" (

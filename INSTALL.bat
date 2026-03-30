@@ -1,13 +1,10 @@
 @echo off
 REM ============================================================================
-REM  PDF Editor Suite - One-Click Installer
+REM  PDF Editor Suite - One-Click Installer (fully self-contained)
 REM  by sariamubeen
 REM ============================================================================
-REM  Just double-click this file. It handles everything:
-REM    - Checks for admin rights (re-launches elevated if needed)
-REM    - Asks for your server IP
-REM    - Installs and registers the PDF handler
-REM    - Validates the setup
+REM  Double-click this file. Nothing else needed.
+REM  It creates all required files, registers the handler, and validates.
 REM ============================================================================
 
 :: Check for admin
@@ -44,53 +41,61 @@ echo.
 
 :: Set paths
 set "INSTALL_DIR=%ProgramFiles%\PDFEditorSuite"
-set "SCRIPT_DIR=%~dp0"
-set "CLIENT_DIR=%SCRIPT_DIR%client"
 set "PROGID=PDFEditorSuite.PDF"
 set "DISPLAY_NAME=PDF Editor Suite (Browser)"
 
-:: Check client folder exists
-if not exist "%CLIENT_DIR%\Open-PDFInBrowser.ps1" (
-    echo   ERROR: client folder not found at %CLIENT_DIR%
-    echo   Make sure INSTALL.bat is in the pdf-editor-suite root folder.
-    pause
-    exit /b 1
-)
-
+:: ============================================================================
 :: Step 1: Create install directory
+:: ============================================================================
 echo   [1/5] Creating install directory...
 if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
 echo         %INSTALL_DIR%
 
-:: Step 2: Generate config.ps1
-echo   [2/5] Generating configuration...
+:: ============================================================================
+:: Step 2: Generate all required files directly (no dependencies)
+:: ============================================================================
+echo   [2/5] Creating scripts...
+
+:: --- open-pdf.bat (the file association target) ---
 (
-echo # PDF Editor Suite - Client Configuration [auto-generated]
-echo.
+echo @echo off
+echo powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%%~dp0Open-PDFInBrowser.ps1" "%%~1"
+) > "%INSTALL_DIR%\open-pdf.bat"
+echo         open-pdf.bat created
+
+:: --- config.ps1 ---
+(
 echo $PDFEditorURL = "%SERVER_URL%"
-echo.
 echo $RequireLogin = $false
-echo.
 echo $StirlingUsername = "admin"
-echo $StirlingPassword = "ChangeMeOnFirstLogin!"
-echo.
+echo $StirlingPassword = ""
 echo $InstallDir = "$env:ProgramFiles\PDFEditorSuite"
-echo.
 echo $ProgId = "%PROGID%"
-echo.
 echo $DisplayName = "%DISPLAY_NAME%"
 ) > "%INSTALL_DIR%\config.ps1"
-echo         config.ps1 generated
+echo         config.ps1 created
 
-:: Step 3: Copy scripts
-echo   [3/5] Installing scripts...
-copy /y "%CLIENT_DIR%\Open-PDFInBrowser.ps1" "%INSTALL_DIR%\" >nul
-echo         Open-PDFInBrowser.ps1 installed
-copy /y "%CLIENT_DIR%\open-pdf.bat" "%INSTALL_DIR%\" >nul
-echo         open-pdf.bat installed
+:: --- Open-PDFInBrowser.ps1 (the main handler) ---
+:: Using > and >> to write line by line to avoid any encoding issues
+> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo param([Parameter(Mandatory=$true,Position=0)][string]$PdfPath)
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo $ErrorActionPreference = "Stop"
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo $ConfigFile = Join-Path $ScriptDir "config.ps1"
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo if (-not (Test-Path $ConfigFile)) { exit 1 }
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo . $ConfigFile
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo if (-not (Test-Path -LiteralPath $PdfPath)) { exit 1 }
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo $PdfPath = (Resolve-Path -LiteralPath $PdfPath).Path
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo $FileName = [System.IO.Path]::GetFileName($PdfPath)
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo try { Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Clipboard]::SetText($PdfPath) } catch { }
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo try { Start-Process "$PDFEditorURL" } catch { exit 1 }
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo try { $n = New-Object System.Windows.Forms.NotifyIcon; $n.Icon = [System.Drawing.SystemIcons]::Information; $n.Visible = $true; $n.BalloonTipTitle = "PDF Editor Suite"; $n.BalloonTipText = "Opening '$FileName' - file path copied to clipboard."; $n.ShowBalloonTip(4000); Start-Sleep -Seconds 5; $n.Dispose() } catch { }
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo exit 0
+echo         Open-PDFInBrowser.ps1 created
 
-:: Step 4: Register file association
-echo   [4/5] Registering .pdf file handler...
+:: ============================================================================
+:: Step 3: Register file association
+:: ============================================================================
+echo   [3/5] Registering .pdf file handler...
 
 set "BATCH_PATH=%INSTALL_DIR%\open-pdf.bat"
 
@@ -100,6 +105,7 @@ reg add "HKLM\SOFTWARE\Classes\%PROGID%" /v "FriendlyTypeName" /d "%DISPLAY_NAME
 reg add "HKLM\SOFTWARE\Classes\%PROGID%\shell\open\command" /ve /d "\"%BATCH_PATH%\" \"%%1\"" /f >nul 2>&1
 
 :: Back up current handler
+set "CURRENT_HANDLER="
 for /f "tokens=2*" %%a in ('reg query "HKLM\SOFTWARE\Classes\.pdf" /ve 2^>nul ^| find "REG_SZ"') do set "CURRENT_HANDLER=%%b"
 if defined CURRENT_HANDLER (
     if not "%CURRENT_HANDLER%"=="%PROGID%" (
@@ -114,39 +120,39 @@ ftype %PROGID%="%BATCH_PATH%" "%%1" >nul 2>&1
 assoc .pdf=%PROGID% >nul 2>&1
 echo         .pdf handler registered
 
+:: ============================================================================
+:: Step 4: Create uninstaller in install directory
+:: ============================================================================
+echo   [4/5] Creating uninstaller...
+
+> "%INSTALL_DIR%\Uninstall.bat" echo @echo off
+>> "%INSTALL_DIR%\Uninstall.bat" echo net session ^>nul 2^>^&1
+>> "%INSTALL_DIR%\Uninstall.bat" echo if %%errorlevel%% neq 0 ( powershell -Command "Start-Process '%%~f0' -Verb RunAs" ^& exit /b )
+>> "%INSTALL_DIR%\Uninstall.bat" echo echo Uninstalling PDF Editor Suite...
+>> "%INSTALL_DIR%\Uninstall.bat" echo set "PREV="
+>> "%INSTALL_DIR%\Uninstall.bat" echo for /f "tokens=2*" %%%%a in ('reg query "HKLM\SOFTWARE\Classes\.pdf" /v "PDFEditorSuite_PreviousHandler" 2^^^>nul ^^^| find "REG_SZ"') do set "PREV=%%%%b"
+>> "%INSTALL_DIR%\Uninstall.bat" echo if defined PREV ( reg add "HKLM\SOFTWARE\Classes\.pdf" /ve /d "%%PREV%%" /f ^>nul 2^>^&1 ^& reg delete "HKLM\SOFTWARE\Classes\.pdf" /v "PDFEditorSuite_PreviousHandler" /f ^>nul 2^>^&1 )
+>> "%INSTALL_DIR%\Uninstall.bat" echo reg delete "HKLM\SOFTWARE\Classes\%PROGID%" /f ^>nul 2^>^&1
+>> "%INSTALL_DIR%\Uninstall.bat" echo ftype %PROGID%= ^>nul 2^>^&1
+>> "%INSTALL_DIR%\Uninstall.bat" echo echo   [OK] File association removed
+>> "%INSTALL_DIR%\Uninstall.bat" echo rmdir /s /q "%INSTALL_DIR%" 2^>nul
+>> "%INSTALL_DIR%\Uninstall.bat" echo echo   [OK] Uninstall complete
+>> "%INSTALL_DIR%\Uninstall.bat" echo pause
+echo         Uninstaller created at %INSTALL_DIR%\Uninstall.bat
+
+:: ============================================================================
 :: Step 5: Validate
+:: ============================================================================
 echo   [5/5] Validating...
 
 set "ALL_GOOD=1"
 
-if exist "%INSTALL_DIR%\config.ps1" (
-    echo         [OK] config.ps1
-) else (
-    echo         [!!] config.ps1 MISSING
-    set "ALL_GOOD=0"
-)
-
-if exist "%INSTALL_DIR%\Open-PDFInBrowser.ps1" (
-    echo         [OK] Open-PDFInBrowser.ps1
-) else (
-    echo         [!!] Open-PDFInBrowser.ps1 MISSING
-    set "ALL_GOOD=0"
-)
-
-if exist "%INSTALL_DIR%\open-pdf.bat" (
-    echo         [OK] open-pdf.bat
-) else (
-    echo         [!!] open-pdf.bat MISSING
-    set "ALL_GOOD=0"
-)
+if exist "%INSTALL_DIR%\config.ps1" (echo         [OK] config.ps1) else (echo         [!!] config.ps1 MISSING & set "ALL_GOOD=0")
+if exist "%INSTALL_DIR%\Open-PDFInBrowser.ps1" (echo         [OK] Open-PDFInBrowser.ps1) else (echo         [!!] Open-PDFInBrowser.ps1 MISSING & set "ALL_GOOD=0")
+if exist "%INSTALL_DIR%\open-pdf.bat" (echo         [OK] open-pdf.bat) else (echo         [!!] open-pdf.bat MISSING & set "ALL_GOOD=0")
 
 reg query "HKLM\SOFTWARE\Classes\%PROGID%" >nul 2>&1
-if %errorlevel% equ 0 (
-    echo         [OK] Registry handler
-) else (
-    echo         [!!] Registry handler MISSING
-    set "ALL_GOOD=0"
-)
+if %errorlevel% equ 0 (echo         [OK] Registry handler) else (echo         [!!] Registry MISSING & set "ALL_GOOD=0")
 
 echo.
 
@@ -159,7 +165,7 @@ if "%ALL_GOOD%"=="1" (
     echo   ^|  Server: %SERVER_URL%
     echo   ^|  Auth  : No login required                               ^|
     echo   ^|                                                          ^|
-    echo   ^|  To uninstall: run UNINSTALL.bat                         ^|
+    echo   ^|  Uninstall: %INSTALL_DIR%\Uninstall.bat
     echo   +==========================================================+
 ) else (
     echo   Setup finished with errors - review output above.
