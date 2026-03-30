@@ -4,11 +4,13 @@ REM  PDF Editor Suite - Uninstaller (self-contained)
 REM  by sariamubeen
 REM ============================================================================
 
+cd /d "%~dp0"
+
 :: Check for admin
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo Requesting Administrator privileges...
-    powershell -Command "Start-Process '%~f0' -Verb RunAs"
+    powershell -Command "Start-Process cmd.exe -ArgumentList '/k cd /d \"%~dp0\" && \"%~f0\"' -Verb RunAs"
     exit /b
 )
 

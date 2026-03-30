@@ -6,11 +6,14 @@ REM ============================================================================
 REM  Double-click this file. Nothing else needed.
 REM ============================================================================
 
+:: Always change to the script's own directory first
+cd /d "%~dp0"
+
 :: Check for admin
 net session >nul 2>&1
 if %errorlevel% neq 0 (
     echo Requesting Administrator privileges...
-    powershell -Command "Start-Process '%~f0' -Verb RunAs"
+    powershell -Command "Start-Process cmd.exe -ArgumentList '/k cd /d \"%~dp0\" && \"%~f0\"' -Verb RunAs"
     exit /b
 )
 
