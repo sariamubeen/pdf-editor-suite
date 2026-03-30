@@ -27,16 +27,9 @@
     Remove PDF Editor Suite from this machine.
 
 .EXAMPLE
-    # Auto-discover server on the network
     .\Setup.ps1
-
-    # Specify server directly
     .\Setup.ps1 -ServerURL "http://192.168.1.50:8080"
-
-    # Server with authentication
     .\Setup.ps1 -ServerURL "http://192.168.1.50:8080" -Username admin -Password MyPass123
-
-    # Uninstall
     .\Setup.ps1 -Uninstall
 
 .NOTES
@@ -59,6 +52,16 @@ $DisplayName  = "PDF Editor Suite (Browser)"
 $InstallDir   = "$env:ProgramFiles\PDFEditorSuite"
 $ScriptDir    = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $ClientDir    = Join-Path $ScriptDir "client"
+
+# ── Shell refresh helper ────────────────────────────────────────────────────
+
+function Invoke-ShellRefresh {
+    try {
+        $code = 'using System; using System.Runtime.InteropServices; public class SHNotify { [DllImport("shell32.dll")] public static extern void SHChangeNotify(int e, int f, IntPtr i1, IntPtr i2); public static void Refresh() { SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero); } }'
+        Add-Type -TypeDefinition $code -Language CSharp -ErrorAction SilentlyContinue
+        [SHNotify]::Refresh()
+    } catch { }
+}
 
 # ── Require admin ────────────────────────────────────────────────────────────
 
@@ -91,7 +94,6 @@ if ($Uninstall) {
     Write-Host "  Uninstalling PDF Editor Suite..." -ForegroundColor Yellow
     Write-Host ""
 
-    # Restore previous handler
     $ExtPath = "HKLM:\SOFTWARE\Classes\.pdf"
     if (Test-Path $ExtPath) {
         $Previous = (Get-ItemProperty -Path $ExtPath -Name "PDFEditorSuite_PreviousHandler" -ErrorAction SilentlyContinue)."PDFEditorSuite_PreviousHandler"
@@ -105,7 +107,6 @@ if ($Uninstall) {
         }
     }
 
-    # Remove ProgId
     $ProgIdPath = "HKLM:\SOFTWARE\Classes\$ProgId"
     if (Test-Path $ProgIdPath) {
         Remove-Item -Path $ProgIdPath -Recurse -Force
@@ -114,11 +115,12 @@ if ($Uninstall) {
 
     cmd /c "ftype $ProgId=" 2>$null | Out-Null
 
-    # Remove install directory
     if (Test-Path $InstallDir) {
         Remove-Item -Path $InstallDir -Recurse -Force
         Write-Host "  [OK] Removed $InstallDir" -ForegroundColor Green
     }
+
+    Invoke-ShellRefresh
 
     Write-Host ""
     Write-Host "  Uninstall complete." -ForegroundColor Green
@@ -144,7 +146,6 @@ if (-not (Test-Path $ClientDir)) {
 Write-Host "  [1/6] Finding Stirling-PDF server..." -ForegroundColor Yellow
 
 if ($ServerURL -eq "") {
-    # Try auto-discovery: scan common ports on the local subnet
     Write-Host "         Scanning local network for Stirling-PDF..." -ForegroundColor DarkGray
 
     $LocalIP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object {
@@ -152,11 +153,9 @@ if ($ServerURL -eq "") {
     } | Select-Object -First 1).IPAddress
 
     $Subnet = ($LocalIP -split '\.')[0..2] -join '.'
-    $FoundServer = $null
+    $ScanResults = @()
     $PortsToTry = @(8080, 80, 443, 8443, 8888)
 
-    # Scan .1 through .254 on the subnet with common ports
-    $ScanResults = @()
     foreach ($Port in $PortsToTry) {
         foreach ($i in 1..254) {
             $TestIP = "$Subnet.$i"
@@ -165,25 +164,23 @@ if ($ServerURL -eq "") {
             try {
                 $TcpClient = New-Object System.Net.Sockets.TcpClient
                 $AsyncResult = $TcpClient.BeginConnect($TestIP, $Port, $null, $null)
-                $Wait = $AsyncResult.AsyncWaitHandle.WaitOne(150)  # 150ms timeout per host
+                $Wait = $AsyncResult.AsyncWaitHandle.WaitOne(150)
                 if ($Wait -and $TcpClient.Connected) {
                     $TcpClient.EndConnect($AsyncResult)
                     $TcpClient.Close()
 
-                    # Verify it's actually Stirling-PDF
                     $Protocol = if ($Port -eq 443 -or $Port -eq 8443) { "https" } else { "http" }
                     $TestURL = "${Protocol}://${TestIP}:${Port}"
                     try {
-                        $Response = Invoke-WebRequest -Uri "$TestURL/api/v1/info/status" `
-                            -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
+                        $Response = Invoke-WebRequest -Uri "$TestURL/api/v1/info/status" -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
                         if ($Response.StatusCode -eq 200) {
                             $ScanResults += $TestURL
                             Write-Host "         Found: $TestURL" -ForegroundColor Green
                         }
                     }
                     catch {
-                        # Check if it's a redirect to login (still Stirling-PDF)
-                        $StatusCode = $_.Exception.Response.StatusCode.value__
+                        $StatusCode = 0
+                        if ($_.Exception.Response) { $StatusCode = [int]$_.Exception.Response.StatusCode }
                         if ($StatusCode -eq 302 -or $StatusCode -eq 401 -or $StatusCode -eq 200) {
                             $ScanResults += $TestURL
                             Write-Host "         Found: $TestURL (requires login)" -ForegroundColor Green
@@ -193,12 +190,10 @@ if ($ServerURL -eq "") {
                     $TcpClient.Close()
                 }
             }
-            catch {
-                # Host not reachable — skip
-            }
+            catch { }
         }
 
-        if ($ScanResults.Count -gt 0) { break }  # Stop after finding on first port
+        if ($ScanResults.Count -gt 0) { break }
     }
 
     if ($ScanResults.Count -eq 1) {
@@ -227,9 +222,7 @@ if ($ServerURL -eq "" -or $ServerURL -match "YOUR_SERVER_IP") {
     exit 1
 }
 
-# Remove trailing slash
 $ServerURL = $ServerURL.TrimEnd('/')
-
 Write-Host "         Server: $ServerURL" -ForegroundColor Green
 Write-Host ""
 
@@ -243,16 +236,15 @@ $ServerReachable = $false
 $LoginRequired = $false
 
 try {
-    $Response = Invoke-WebRequest -Uri "$ServerURL/api/v1/info/status" `
-        -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-
+    $Response = Invoke-WebRequest -Uri "$ServerURL/api/v1/info/status" -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
     if ($Response.StatusCode -eq 200) {
         $ServerReachable = $true
         Write-Host "         Server is online (no login required)" -ForegroundColor Green
     }
 }
 catch {
-    $StatusCode = $_.Exception.Response.StatusCode.value__
+    $StatusCode = 0
+    if ($_.Exception.Response) { $StatusCode = [int]$_.Exception.Response.StatusCode }
     if ($StatusCode -eq 302 -or $StatusCode -eq 401 -or $StatusCode -eq 403) {
         $ServerReachable = $true
         $LoginRequired = $true
@@ -268,7 +260,7 @@ catch {
         Write-Host ""
         $Continue = Read-Host "  Continue anyway? (y/N)"
         if ($Continue -ne "y") { exit 1 }
-        $ServerReachable = $true  # User chose to continue
+        $ServerReachable = $true
     }
 }
 
@@ -291,7 +283,6 @@ if ($LoginRequired) {
         $Password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
     }
 
-    # Test login
     try {
         $LoginBody = @{ username = $Username; password = $Password }
         $TestSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
@@ -317,30 +308,31 @@ Write-Host ""
 
 Write-Host "  [4/6] Installing files..." -ForegroundColor Yellow
 
-# Create install directory
 if (-not (Test-Path $InstallDir)) {
     New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
 }
 
 # Generate config.ps1 with detected settings
-$ConfigContent = @"
-# =============================================================================
-# PDF Editor Suite — Client Configuration (auto-generated by Setup.ps1)
-# =============================================================================
-
-`$PDFEditorURL = "$ServerURL"
-
-`$RequireLogin = `$$($LoginRequired.ToString().ToLower())
-
-`$StirlingUsername = "$Username"
-`$StirlingPassword = "$Password"
-
-`$InstallDir = "`$env:ProgramFiles\PDFEditorSuite"
-
-`$ProgId = "$ProgId"
-
-`$DisplayName = "$DisplayName"
-"@
+$LoginRequiredStr = if ($LoginRequired) { '$true' } else { '$false' }
+$ConfigLines = @(
+    '# ============================================================================='
+    '# PDF Editor Suite — Client Configuration (auto-generated by Setup.ps1)'
+    '# ============================================================================='
+    ''
+    "`$PDFEditorURL = `"$ServerURL`""
+    ''
+    "`$RequireLogin = $LoginRequiredStr"
+    ''
+    "`$StirlingUsername = `"$Username`""
+    "`$StirlingPassword = `"$Password`""
+    ''
+    '$InstallDir = "$env:ProgramFiles\PDFEditorSuite"'
+    ''
+    "`$ProgId = `"$ProgId`""
+    ''
+    "`$DisplayName = `"$DisplayName`""
+)
+$ConfigContent = $ConfigLines -join "`r`n"
 
 Set-Content -Path (Join-Path $InstallDir "config.ps1") -Value $ConfigContent -Encoding UTF8
 Write-Host "         Generated config.ps1 with server: $ServerURL" -ForegroundColor Green
@@ -367,20 +359,18 @@ Write-Host ""
 Write-Host "  [5/6] Registering .pdf file association..." -ForegroundColor Yellow
 
 $BatchPath = Join-Path $InstallDir "open-pdf.bat"
-$ProgIdPath = "HKLM:\SOFTWARE\Classes\$ProgId"
+$ProgIdRegPath = "HKLM:\SOFTWARE\Classes\$ProgId"
 
-# Create ProgId
-New-Item -Path $ProgIdPath -Force | Out-Null
-Set-ItemProperty -Path $ProgIdPath -Name "(Default)" -Value $DisplayName
-Set-ItemProperty -Path $ProgIdPath -Name "FriendlyTypeName" -Value $DisplayName
+New-Item -Path $ProgIdRegPath -Force | Out-Null
+Set-ItemProperty -Path $ProgIdRegPath -Name "(Default)" -Value $DisplayName
+Set-ItemProperty -Path $ProgIdRegPath -Name "FriendlyTypeName" -Value $DisplayName
 
-$CommandPath = "$ProgIdPath\shell\open\command"
+$CommandPath = "$ProgIdRegPath\shell\open\command"
 New-Item -Path $CommandPath -Force | Out-Null
 Set-ItemProperty -Path $CommandPath -Name "(Default)" -Value "`"$BatchPath`" `"%1`""
 
 Write-Host "         Registered ProgId: $ProgId" -ForegroundColor Green
 
-# Set .pdf association
 $ExtPath = "HKLM:\SOFTWARE\Classes\.pdf"
 if (-not (Test-Path $ExtPath)) {
     New-Item -Path $ExtPath -Force | Out-Null
@@ -398,15 +388,7 @@ cmd /c "assoc .pdf=$ProgId" 2>$null | Out-Null
 
 Write-Host "         .pdf → $ProgId" -ForegroundColor Green
 
-# Refresh shell
-try {
-    Add-Type -TypeDefinition @'
-using System; using System.Runtime.InteropServices;
-public class SR3 { [DllImport("shell32.dll")] public static extern void SHChangeNotify(int e, int f, IntPtr i1, IntPtr i2);
-    public static void R() { SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero); } }
-'@ -ErrorAction SilentlyContinue
-    [SR3]::R()
-} catch { }
+Invoke-ShellRefresh
 
 Write-Host ""
 
@@ -418,7 +400,6 @@ Write-Host "  [6/6] Validating installation..." -ForegroundColor Yellow
 
 $AllGood = $true
 
-# Check files
 foreach ($File in @("config.ps1", "Open-PDFInBrowser.ps1", "open-pdf.bat")) {
     if (Test-Path (Join-Path $InstallDir $File)) {
         Write-Host "         [OK] $File" -ForegroundColor Green
@@ -428,7 +409,6 @@ foreach ($File in @("config.ps1", "Open-PDFInBrowser.ps1", "open-pdf.bat")) {
     }
 }
 
-# Check registry
 if (Test-Path "HKLM:\SOFTWARE\Classes\$ProgId") {
     Write-Host "         [OK] Registry handler" -ForegroundColor Green
 } else {
@@ -436,7 +416,6 @@ if (Test-Path "HKLM:\SOFTWARE\Classes\$ProgId") {
     $AllGood = $false
 }
 
-# Check server
 if ($ServerReachable) {
     Write-Host "         [OK] Server reachable" -ForegroundColor Green
 } else {
