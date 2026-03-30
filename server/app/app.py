@@ -111,14 +111,20 @@ def edit(filename):
             },
         },
         "documentType": "pdf",
+        "height": "100%",
+        "width": "100%",
         "editorConfig": {
             "callbackUrl": callback_url,
             "mode": "edit",
             "lang": "en",
+            "user": {
+                "id": "user1",
+                "name": "User",
+            },
             "customization": {
                 "autosave": True,
                 "forcesave": True,
-                "compactHeader": True,
+                "compactHeader": False,
             },
         },
     }
@@ -130,16 +136,12 @@ def edit(filename):
     config_json = json.dumps(config)
 
     return f"""<!DOCTYPE html>
-<html>
+<html style="height:100%;margin:0;padding:0;overflow:hidden">
 <head>
 <title>{title} - PDF Editor Suite</title>
-<style>
-body {{ margin: 0; overflow: hidden; }}
-#editor {{ width: 100vw; height: 100vh; }}
-</style>
 </head>
-<body>
-<div id="editor"></div>
+<body style="height:100%;margin:0;padding:0;overflow:hidden">
+<div id="editor" style="position:absolute;top:0;left:0;right:0;bottom:0"></div>
 <script src="{ONLYOFFICE_URL}/web-apps/apps/api/documents/api.js"></script>
 <script>
 new DocsAPI.DocEditor("editor", {config_json});
