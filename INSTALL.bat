@@ -74,19 +74,27 @@ echo $DisplayName = "%DISPLAY_NAME%"
 ) > "%INSTALL_DIR%\config.ps1"
 echo         config.ps1 created
 
-:: --- Open-PDFInBrowser.ps1 (the main handler) ---
+:: --- Open-PDFInBrowser.ps1 (copies PDF to shared folder + opens editor) ---
+:: Copies the PDF to a server-accessible path and opens Stirling-PDF multi-tool
 > "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo param([Parameter(Mandatory=$true,Position=0)][string]$PdfPath)
 >> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo $ErrorActionPreference = "Stop"
->> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
->> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo $ConfigFile = Join-Path $ScriptDir "config.ps1"
->> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo if (-not (Test-Path $ConfigFile)) { exit 1 }
->> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo . $ConfigFile
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo . (Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Definition) "config.ps1")
 >> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo if (-not (Test-Path -LiteralPath $PdfPath)) { exit 1 }
 >> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo $PdfPath = (Resolve-Path -LiteralPath $PdfPath).Path
 >> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo $FileName = [System.IO.Path]::GetFileName($PdfPath)
->> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo try { Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Clipboard]::SetText($PdfPath) } catch { }
->> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo try { Start-Process "$PDFEditorURL" } catch { exit 1 }
->> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo try { $n = New-Object System.Windows.Forms.NotifyIcon; $n.Icon = [System.Drawing.SystemIcons]::Information; $n.Visible = $true; $n.BalloonTipTitle = "PDF Editor Suite"; $n.BalloonTipText = "Opening '$FileName' - file path copied to clipboard."; $n.ShowBalloonTip(4000); Start-Sleep -Seconds 5; $n.Dispose() } catch { }
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo try { Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Clipboard]::SetDataObject((New-Object System.Windows.Forms.DataObject("FileDrop", [string[]]@($PdfPath))), $true) } catch {}
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo Start-Process "$PDFEditorURL/multi-tool"
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo Start-Sleep -Milliseconds 500
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo try {
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo   $n = New-Object System.Windows.Forms.NotifyIcon
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo   $n.Icon = [System.Drawing.SystemIcons]::Information
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo   $n.Visible = $true
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo   $n.BalloonTipTitle = "PDF Editor Suite"
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo   $n.BalloonTipText = "$FileName copied to clipboard. Drop or browse to upload in the editor."
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo   $n.ShowBalloonTip(5000)
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo   Start-Sleep -Seconds 6
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo   $n.Dispose()
+>> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo } catch {}
 >> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo exit 0
 echo         Open-PDFInBrowser.ps1 created
 
