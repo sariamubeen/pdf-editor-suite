@@ -89,17 +89,7 @@ Write-Host "  [OK] Removed ftype entry" -ForegroundColor Green
 # ── Refresh shell ────────────────────────────────────────────────────────────
 
 try {
-    $ShellCode = @'
-using System;
-using System.Runtime.InteropServices;
-public class ShellRefreshUninstall {
-    [DllImport("shell32.dll")]
-    public static extern void SHChangeNotify(int eventId, int flags, IntPtr item1, IntPtr item2);
-    public static void Refresh() {
-        SHChangeNotify(0x08000000, 0x0000, IntPtr.Zero, IntPtr.Zero);
-    }
-}
-'@
+    $ShellCode = 'using System; using System.Runtime.InteropServices; public class ShellRefreshUninstall { [DllImport("shell32.dll")] public static extern void SHChangeNotify(int e, int f, IntPtr i1, IntPtr i2); public static void Refresh() { SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero); } }'
     Add-Type -TypeDefinition $ShellCode -Language CSharp -ErrorAction SilentlyContinue
     [ShellRefreshUninstall]::Refresh()
 }

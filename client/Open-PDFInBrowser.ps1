@@ -112,19 +112,20 @@ if ($RequireLogin -eq $true) {
             # a different approach: open the login URL with credentials as a form POST
             # by writing a small HTML auto-submit form
             $TempHtml = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "pdf-editor-login.html")
-            $HtmlContent = @"
-<!DOCTYPE html>
-<html>
-<head><title>PDF Editor Suite — Connecting...</title></head>
-<body>
-<form id="loginForm" method="POST" action="$PDFEditorURL/login">
-  <input type="hidden" name="username" value="$StirlingUsername" />
-  <input type="hidden" name="password" value="$StirlingPassword" />
-</form>
-<script>document.getElementById('loginForm').submit();</script>
-</body>
-</html>
-"@
+            $HtmlLines = @(
+                '<!DOCTYPE html>'
+                '<html>'
+                '<head><title>PDF Editor Suite</title></head>'
+                '<body>'
+                "<form id=`"loginForm`" method=`"POST`" action=`"$PDFEditorURL/login`">"
+                "  <input type=`"hidden`" name=`"username`" value=`"$StirlingUsername`" />"
+                "  <input type=`"hidden`" name=`"password`" value=`"$StirlingPassword`" />"
+                '</form>'
+                "<script>document.getElementById('loginForm').submit();</script>"
+                '</body>'
+                '</html>'
+            )
+            $HtmlContent = $HtmlLines -join "`r`n"
             Set-Content -Path $TempHtml -Value $HtmlContent -Encoding UTF8
             $LaunchURL = $TempHtml
 

@@ -131,11 +131,8 @@ if ($Uninstall) {
 
     # Refresh shell
     try {
-        Add-Type -TypeDefinition @'
-using System; using System.Runtime.InteropServices;
-public class SR1 { [DllImport("shell32.dll")] public static extern void SHChangeNotify(int e, int f, IntPtr i1, IntPtr i2);
-    public static void R() { SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero); } }
-'@ -ErrorAction SilentlyContinue
+        $code = 'using System; using System.Runtime.InteropServices; public class SR1 { [DllImport("shell32.dll")] public static extern void SHChangeNotify(int e, int f, IntPtr i1, IntPtr i2); public static void R() { SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero); } }'
+        Add-Type -TypeDefinition $code -Language CSharp -ErrorAction SilentlyContinue
         [SR1]::R()
     } catch { }
 
@@ -230,23 +227,15 @@ Write-Log "Set .pdf → $ProgId"
 # ── Refresh shell ────────────────────────────────────────────────────────────
 
 try {
-    Add-Type -TypeDefinition @'
-using System; using System.Runtime.InteropServices;
-public class SR2 { [DllImport("shell32.dll")] public static extern void SHChangeNotify(int e, int f, IntPtr i1, IntPtr i2);
-    public static void R() { SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero); } }
-'@ -ErrorAction SilentlyContinue
+    $code = 'using System; using System.Runtime.InteropServices; public class SR2 { [DllImport("shell32.dll")] public static extern void SHChangeNotify(int e, int f, IntPtr i1, IntPtr i2); public static void R() { SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero); } }'
+    Add-Type -TypeDefinition $code -Language CSharp -ErrorAction SilentlyContinue
     [SR2]::R()
 } catch { }
 
 # ── Generate Default App Associations XML ────────────────────────────────────
 
 $AssocXML = Join-Path $InstallDir "DefaultAssociations.xml"
-$XMLContent = @"
-<?xml version="1.0" encoding="UTF-8"?>
-<DefaultAssociations>
-  <Association Identifier=".pdf" ProgId="$ProgId" ApplicationName="$DisplayName" />
-</DefaultAssociations>
-"@
+$XMLContent = "<?xml version=`"1.0`" encoding=`"UTF-8`"?>`r`n<DefaultAssociations>`r`n  <Association Identifier=`".pdf`" ProgId=`"$ProgId`" ApplicationName=`"$DisplayName`" />`r`n</DefaultAssociations>"
 Set-Content -Path $AssocXML -Value $XMLContent -Encoding UTF8
 Write-Log "Generated DefaultAssociations.xml at $AssocXML"
 
