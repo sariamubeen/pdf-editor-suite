@@ -44,7 +44,6 @@ input[type=file] { display: none; }
 <body>
 <div class="box">
 <h1>PDF Editor Suite</h1>
-<p>by sariamubeen</p>
 <div class="upload" onclick="document.getElementById('f').click()">
   <p>Click or drag a PDF here to edit</p>
   <input type="file" id="f" accept=".pdf" onchange="upload(this.files[0])">
