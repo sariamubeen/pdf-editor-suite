@@ -24,6 +24,7 @@ cd "$SCRIPT_DIR"
 echo -e "${CYAN}"
 echo "╔══════════════════════════════════════════════════════╗"
 echo "║       PDF Editor Suite — Server Setup                ║"
+echo "║                                      by sariamubeen ║"
 echo "╚══════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -103,7 +104,7 @@ fi
 
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║  Setup Complete                                      ║${NC}"
+echo -e "${CYAN}║  Setup Complete                      by sariamubeen ║${NC}"
 echo -e "${CYAN}╠══════════════════════════════════════════════════════╣${NC}"
 echo -e "${CYAN}║${NC}  Internal URL : http://127.0.0.1:${STIRLING_PORT}               ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}  Container    : stirling-pdf                        ${CYAN}║${NC}"

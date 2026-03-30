@@ -30,7 +30,7 @@
     Deploy-PDFEditorSuite.ps1 -Uninstall
 
 .NOTES
-    Part of PDF Editor Suite.
+    Part of PDF Editor Suite by sariamubeen.
     Runs as SYSTEM under GPO — no user interaction.
     Logs to Windows Event Log: Application → PDFEditorSuite
 #>

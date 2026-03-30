@@ -79,6 +79,7 @@ done
 echo -e "${CYAN}"
 echo "╔══════════════════════════════════════════════════════╗"
 echo "║  PDF Editor Suite — Validation                       ║"
+echo "║                                      by sariamubeen ║"
 echo "╚══════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 

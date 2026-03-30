@@ -1,4 +1,5 @@
 # PDF Editor Suite
+**by sariamubeen**
 
 **Self-hosted PDF editing, annotation, and digital signing — launched directly from a Windows desktop.**
 

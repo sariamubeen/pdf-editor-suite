@@ -61,6 +61,7 @@ if ($PDFEditorURL -eq "https://pdf.example.com") {
 Write-Host ""
 Write-Host "  ╔══════════════════════════════════════════════════════╗" -ForegroundColor Cyan
 Write-Host "  ║  PDF Editor Suite — Windows Client Setup             ║" -ForegroundColor Cyan
+Write-Host "  ║                                      by sariamubeen ║" -ForegroundColor Cyan
 Write-Host "  ╚══════════════════════════════════════════════════════╝" -ForegroundColor Cyan
 Write-Host ""
 
@@ -164,7 +165,7 @@ catch {
 
 Write-Host ""
 Write-Host "  ╔══════════════════════════════════════════════════════╗" -ForegroundColor Green
-Write-Host "  ║  Setup Complete!                                     ║" -ForegroundColor Green
+Write-Host "  ║  Setup Complete!                       sariamubeen  ║" -ForegroundColor Green
 Write-Host "  ║                                                      ║" -ForegroundColor Green
 Write-Host "  ║  Double-clicking any .pdf file will now open         ║" -ForegroundColor Green
 Write-Host "  ║  the browser-based PDF editor.                       ║" -ForegroundColor Green
