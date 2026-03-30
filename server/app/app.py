@@ -9,7 +9,9 @@ import uuid
 import json
 import jwt
 import time
-from flask import Flask, request, jsonify, send_from_directory
+import zipfile
+import io
+from flask import Flask, request, jsonify, send_from_directory, send_file
 
 app = Flask(__name__)
 
@@ -49,6 +51,7 @@ input[type=file] { display: none; }
   <input type="file" id="f" accept=".pdf" onchange="upload(this.files[0])">
 </div>
 <p id="status" style="margin-top:16px"></p>
+<p style="margin-top:24px;font-size:13px"><a href="/download" style="color:#2563eb">Download Windows Installer (INSTALL.bat + Guide)</a></p>
 </div>
 <script>
 function upload(file) {
@@ -174,6 +177,30 @@ def callback():
                 pass
 
     return jsonify(error=0)
+
+
+@app.route("/download")
+def download():
+    """Serve a zip containing INSTALL.bat + Client Guide for Windows users."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        # Add INSTALL.bat from the bundled copy
+        install_path = os.path.join(os.path.dirname(__file__), "bundle", "INSTALL.bat")
+        if os.path.exists(install_path):
+            zf.write(install_path, "INSTALL.bat")
+
+        # Add client guide
+        guide_path = os.path.join(os.path.dirname(__file__), "bundle", "PDF-Editor-Suite-Client-Guide.html")
+        if os.path.exists(guide_path):
+            zf.write(guide_path, "PDF-Editor-Suite-Client-Guide.html")
+
+        # Add UNINSTALL.bat
+        uninstall_path = os.path.join(os.path.dirname(__file__), "bundle", "UNINSTALL.bat")
+        if os.path.exists(uninstall_path):
+            zf.write(uninstall_path, "UNINSTALL.bat")
+
+    buf.seek(0)
+    return send_file(buf, mimetype="application/zip", as_attachment=True, download_name="PDF-Editor-Suite-Setup.zip")
 
 
 @app.route("/health")
