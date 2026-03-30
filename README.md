@@ -56,11 +56,24 @@ chmod +x setup.sh generate-cert.sh
 
 The setup script will detect your server's private IP and display it. You can access Stirling-PDF directly at `http://<SERVER_IP>:8080`, or optionally add a proxy host in Nginx Proxy Manager. See [Server Setup Guide](docs/SERVER-SETUP.md).
 
-### Windows Client (2 minutes)
+### Windows Client — One-Click Setup (1 minute)
 
-1. Copy the `client/` folder to each Windows machine
-2. Edit `client/config.ps1` — set `$PDFEditorURL` to your server's private IP (e.g., `http://192.168.1.50:8080`)
-3. Right-click `Register-PDFHandler.ps1` → **Run with PowerShell as Administrator**
+1. Copy the entire `pdf-editor-suite/` folder to the Windows machine
+2. Right-click `Setup.ps1` → **Run with PowerShell as Administrator**
+3. The script will auto-discover the server, configure everything, and register the handler
+
+```powershell
+# Or from PowerShell (Admin):
+.\Setup.ps1
+
+# Specify server directly:
+.\Setup.ps1 -ServerURL "http://192.168.1.50:8080"
+
+# Uninstall:
+.\Setup.ps1 -Uninstall
+```
+
+PDFs will open directly in the browser — no login prompts (login is disabled by default for private networks).
 
 See [Client Setup Guide](docs/CLIENT-SETUP.md).
 
@@ -108,7 +121,7 @@ The script is idempotent, logs to Windows Event Log (`Application → PDFEditorS
 | Reverse Proxy | Nginx Proxy Manager (existing) |
 | Client OS | Windows 10 / 11 / Server 2019+ |
 | Browser | Any modern browser (Chrome, Edge, Firefox) |
-| Network | Client must reach server over HTTPS |
+| Network | Client must reach server over HTTP/HTTPS |
 
 ---
 
@@ -118,6 +131,7 @@ The script is idempotent, logs to Windows Event Log (`Application → PDFEditorS
 pdf-editor-suite/
 ├── README.md                         # This file
 ├── LICENSE
+├── Setup.ps1                         # ⚡ One-click Windows setup (run this!)
 ├── .gitignore
 ├── server/
 │   ├── docker-compose.yml            # Stirling-PDF container

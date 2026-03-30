@@ -25,9 +25,10 @@ services:
 
     environment:
       # ── Authentication ─────────────────────────────────────────────────────
-      - DOCKER_ENABLE_SECURITY=true
-      - SECURITY_ENABLELOGIN=true
-      - SECURITY_INITIALLOGIN_USERNAME=admin
+      # Set REQUIRE_LOGIN=false in .env to disable login (private/LAN networks)
+      - DOCKER_ENABLE_SECURITY=${REQUIRE_LOGIN:-false}
+      - SECURITY_ENABLELOGIN=${REQUIRE_LOGIN:-false}
+      - SECURITY_INITIALLOGIN_USERNAME=${STIRLING_USERNAME:-admin}
       - SECURITY_INITIALLOGIN_PASSWORD=${STIRLING_ADMIN_PASSWORD:-ChangeMeOnFirstLogin!}
 
       # ── Locale ─────────────────────────────────────────────────────────────

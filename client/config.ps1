@@ -13,6 +13,15 @@
 #   $PDFEditorURL = "https://pdf.yourdomain.com"
 $PDFEditorURL = "http://YOUR_SERVER_IP:8080"
 
+# Authentication — set to $true if your server requires login
+# If $false, PDFs open directly without any login prompt
+$RequireLogin = $false
+
+# Credentials for auto-login (only used when $RequireLogin = $true)
+# The script will authenticate automatically so the user never sees a login page
+$StirlingUsername = "admin"
+$StirlingPassword = "ChangeMeOnFirstLogin!"
+
 # Install directory on the Windows machine
 $InstallDir = "$env:ProgramFiles\PDFEditorSuite"
 

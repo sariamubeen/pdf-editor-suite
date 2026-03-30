@@ -4,14 +4,15 @@
 
 .DESCRIPTION
     Called by Windows file association when a user double-clicks a .pdf file.
-    Copies the file path to the clipboard, then launches the browser to the
-    Stirling-PDF server where the user can upload, edit, annotate, and sign.
+    If the server requires login, the script authenticates via the API first
+    and passes the session cookie to the browser so the user is never prompted.
+    If login is disabled, it simply opens the browser directly.
 
 .PARAMETER PdfPath
     Full path to the PDF file (passed by Windows shell).
 
 .NOTES
-    Part of PDF Editor Suite.
+    Part of PDF Editor Suite by sariamubeen.
     Configuration is read from config.ps1 in the same directory.
 #>
 
@@ -79,10 +80,71 @@ catch {
     # Clipboard access can fail in some session types — non-fatal
 }
 
+# ── Auto-login if server requires authentication ─────────────────────────────
+
+$LaunchURL = $PDFEditorURL
+
+if ($RequireLogin -eq $true) {
+    try {
+        # Create a web session to capture cookies
+        $LoginBody = @{
+            username = $StirlingUsername
+            password = $StirlingPassword
+        }
+
+        # Authenticate and get session cookie
+        $Session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+        $LoginResponse = Invoke-WebRequest -Uri "$PDFEditorURL/login" `
+            -Method POST `
+            -Body $LoginBody `
+            -WebSession $Session `
+            -UseBasicParsing `
+            -MaximumRedirection 5 `
+            -TimeoutSec 15 `
+            -ErrorAction Stop
+
+        # Extract JSESSIONID cookie from the session
+        $SessionCookie = $Session.Cookies.GetCookies($PDFEditorURL) | Where-Object { $_.Name -eq "JSESSIONID" }
+
+        if ($SessionCookie) {
+            # Write cookie to a temp file for the browser
+            # Most browsers accept cookies set via the URL session, but we'll use
+            # a different approach: open the login URL with credentials as a form POST
+            # by writing a small HTML auto-submit form
+            $TempHtml = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "pdf-editor-login.html")
+            $HtmlContent = @"
+<!DOCTYPE html>
+<html>
+<head><title>PDF Editor Suite — Connecting...</title></head>
+<body>
+<form id="loginForm" method="POST" action="$PDFEditorURL/login">
+  <input type="hidden" name="username" value="$StirlingUsername" />
+  <input type="hidden" name="password" value="$StirlingPassword" />
+</form>
+<script>document.getElementById('loginForm').submit();</script>
+</body>
+</html>
+"@
+            Set-Content -Path $TempHtml -Value $HtmlContent -Encoding UTF8
+            $LaunchURL = $TempHtml
+
+            # Schedule cleanup of temp file after 10 seconds
+            Start-Job -ScriptBlock {
+                param($f)
+                Start-Sleep -Seconds 10
+                Remove-Item -Path $f -Force -ErrorAction SilentlyContinue
+            } -ArgumentList $TempHtml | Out-Null
+        }
+    }
+    catch {
+        # Auto-login failed — fall back to opening the URL directly (user will see login page)
+    }
+}
+
 # ── Launch browser ───────────────────────────────────────────────────────────
 
 try {
-    Start-Process "$PDFEditorURL"
+    Start-Process "$LaunchURL"
 }
 catch {
     Add-Type -AssemblyName System.Windows.Forms

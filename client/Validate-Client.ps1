@@ -122,8 +122,8 @@ Write-Host ""
 
 Write-Host "  -- Configuration --" -ForegroundColor Cyan
 
-if ($PDFEditorURL -eq "https://pdf.example.com") {
-    Test-Fail "Server URL is still the default (https://pdf.example.com) — edit config.ps1"
+if ($PDFEditorURL -match "(pdf\.example\.com|YOUR_SERVER_IP)") {
+    Test-Fail "Server URL is still the default — run Setup.ps1 or edit config.ps1"
 } elseif ($PDFEditorURL -match "^https://") {
     Test-Pass "Server URL configured: $PDFEditorURL"
 } elseif ($PDFEditorURL -match "^http://") {
