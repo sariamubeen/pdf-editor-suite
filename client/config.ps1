@@ -5,9 +5,13 @@
 # All other scripts read from this file.
 # =============================================================================
 
-# URL of your Stirling-PDF server (as configured in Nginx Proxy Manager)
-# Must include https:// — no trailing slash
-$PDFEditorURL = "https://pdf.example.com"
+# URL of your Stirling-PDF server
+# Use your server's private IP + port, or domain if behind a reverse proxy
+# No trailing slash
+# Examples:
+#   $PDFEditorURL = "http://192.168.1.50:8080"
+#   $PDFEditorURL = "https://pdf.yourdomain.com"
+$PDFEditorURL = "http://YOUR_SERVER_IP:8080"
 
 # Install directory on the Windows machine
 $InstallDir = "$env:ProgramFiles\PDFEditorSuite"

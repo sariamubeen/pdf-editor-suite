@@ -72,6 +72,16 @@ STIRLING_PORT="${STIRLING_PORT:-8080}"
 
 log "Using port: $STIRLING_PORT"
 
+# ── Detect server private IP ───────────────────────────────────────────────
+
+SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+if [ -z "$SERVER_IP" ]; then
+    SERVER_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}')
+fi
+SERVER_IP="${SERVER_IP:-YOUR_SERVER_IP}"
+
+log "Detected server IP: $SERVER_IP"
+
 # ── Pull and start ──────────────────────────────────────────────────────────
 
 log "Pulling Stirling-PDF image..."
@@ -103,21 +113,22 @@ fi
 # ── Summary ─────────────────────────────────────────────────────────────────
 
 echo ""
-echo -e "${CYAN}╔══════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║  Setup Complete                      by sariamubeen ║${NC}"
-echo -e "${CYAN}╠══════════════════════════════════════════════════════╣${NC}"
-echo -e "${CYAN}║${NC}  Internal URL : http://127.0.0.1:${STIRLING_PORT}               ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}  Container    : stirling-pdf                        ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}                                                     ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}  ${YELLOW}Next steps:${NC}                                       ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}  1. Access directly via http://SERVER_IP:${STIRLING_PORT}       ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}     OR add proxy host in Nginx Proxy Manager        ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}     → Forward pdf.yourdomain.com → 127.0.0.1:${STIRLING_PORT}  ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}     → Enable SSL (Let's Encrypt)                    ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}  2. Login and change admin password                 ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}  3. (Optional) Run generate-cert.sh for custom cert ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}  4. Deploy client/ folder to Windows machines       ${CYAN}║${NC}"
-echo -e "${CYAN}╚══════════════════════════════════════════════════════╝${NC}"
+echo -e "${CYAN}╔══════════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║  Setup Complete                          by sariamubeen ║${NC}"
+echo -e "${CYAN}╠══════════════════════════════════════════════════════════╣${NC}"
+echo -e "${CYAN}║${NC}  Local URL   : http://127.0.0.1:${STIRLING_PORT}                    ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}  Network URL : http://${SERVER_IP}:${STIRLING_PORT}  ${CYAN}${NC}"
+echo -e "${CYAN}║${NC}  Container   : stirling-pdf                             ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}                                                          ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}  ${YELLOW}Next steps:${NC}                                            ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}  1. Access from any machine: http://${SERVER_IP}:${STIRLING_PORT}  ${CYAN}${NC}"
+echo -e "${CYAN}║${NC}  2. Login and change admin password                      ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}  3. (Optional) Run generate-cert.sh for custom cert      ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}  4. Deploy client/ folder to Windows machines            ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}                                                          ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}  ${YELLOW}Client config (client/config.ps1):${NC}                     ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}  Set \$PDFEditorURL = \"http://${SERVER_IP}:${STIRLING_PORT}\"  ${CYAN}${NC}"
+echo -e "${CYAN}╚══════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo "Useful commands:"
 echo "  $COMPOSE_CMD logs -f stirling-pdf   # View logs"

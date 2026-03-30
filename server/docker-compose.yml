@@ -2,7 +2,7 @@
 # Stirling-PDF — Self-Hosted PDF Editor with Digital Signature Support
 # =============================================================================
 # Deployment: docker compose up -d
-# Access:     http://localhost:8080 (proxied via Nginx Proxy Manager)
+# Access:     http://<SERVER_IP>:8080 (or proxied via Nginx Proxy Manager)
 # Docs:       https://docs.stirlingpdf.com
 # =============================================================================
 
@@ -13,7 +13,7 @@ services:
     restart: unless-stopped
 
     ports:
-      - "${STIRLING_PORT:-8080}:8080"   # Configurable via .env — use with NPM or direct LAN access
+      - "0.0.0.0:${STIRLING_PORT:-8080}:8080"   # Bind to all interfaces — accessible via private IP
 
     volumes:
       - stirling-data:/usr/share/tessdata          # OCR language packs

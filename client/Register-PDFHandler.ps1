@@ -47,10 +47,11 @@ if (-not (Test-Path $ConfigFile)) {
 
 # ── Validate config ──────────────────────────────────────────────────────────
 
-if ($PDFEditorURL -eq "https://pdf.example.com") {
+if ($PDFEditorURL -match "(pdf\.example\.com|YOUR_SERVER_IP)") {
     Write-Host ""
     Write-Host "WARNING: You haven't configured the server URL yet!" -ForegroundColor Yellow
-    Write-Host "Edit config.ps1 and set `$PDFEditorURL to your Stirling-PDF server URL." -ForegroundColor Yellow
+    Write-Host "Edit config.ps1 and set `$PDFEditorURL to your server's private IP, e.g.:" -ForegroundColor Yellow
+    Write-Host '  $PDFEditorURL = "http://192.168.1.50:8080"' -ForegroundColor Yellow
     Write-Host ""
     $continue = Read-Host "Continue anyway? (y/N)"
     if ($continue -ne "y") { exit 0 }

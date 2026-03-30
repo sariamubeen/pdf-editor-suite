@@ -54,12 +54,12 @@ chmod +x setup.sh generate-cert.sh
 ./setup.sh
 ```
 
-Then add a proxy host in Nginx Proxy Manager. See [Server Setup Guide](docs/SERVER-SETUP.md).
+The setup script will detect your server's private IP and display it. You can access Stirling-PDF directly at `http://<SERVER_IP>:8080`, or optionally add a proxy host in Nginx Proxy Manager. See [Server Setup Guide](docs/SERVER-SETUP.md).
 
 ### Windows Client (2 minutes)
 
 1. Copy the `client/` folder to each Windows machine
-2. Edit `client/config.ps1` — set your server URL
+2. Edit `client/config.ps1` — set `$PDFEditorURL` to your server's private IP (e.g., `http://192.168.1.50:8080`)
 3. Right-click `Register-PDFHandler.ps1` → **Run with PowerShell as Administrator**
 
 See [Client Setup Guide](docs/CLIENT-SETUP.md).
