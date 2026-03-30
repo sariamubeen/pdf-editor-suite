@@ -29,6 +29,7 @@ Set these values in `.env`:
 |----------|---------|-------------|
 | `STIRLING_ADMIN_PASSWORD` | `MyStr0ngP@ss!` | Initial admin password |
 | `CERT_ORG_NAME` | `Acme Corp` | Name shown on signed PDFs |
+| `STIRLING_PORT` | `8080` | Port to listen on (change if 8080 is taken) |
 
 Then run setup:
 
@@ -37,11 +38,22 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
-Stirling-PDF will be running on `http://127.0.0.1:8080`.
+Stirling-PDF will be running on `http://127.0.0.1:<YOUR_PORT>`.
 
 ---
 
-## Step 2: Configure Nginx Proxy Manager
+## Step 2: Access — Pick One
+
+### Option A: Direct LAN access (no domain, no NPM)
+
+Just open `http://SERVER_IP:PORT` from any machine on the same network. Done.
+
+Set the same address in the Windows client `config.ps1`:
+```powershell
+$PDFEditorURL = "http://192.168.1.50:8080"
+```
+
+### Option B: Nginx Proxy Manager (domain + HTTPS)
 
 1. Open your Nginx Proxy Manager admin panel
 2. Go to **Proxy Hosts → Add Proxy Host**
@@ -52,7 +64,7 @@ Stirling-PDF will be running on `http://127.0.0.1:8080`.
 | Domain Names | `pdf.yourdomain.com` |
 | Scheme | `http` |
 | Forward Hostname / IP | `127.0.0.1` (or server LAN IP if NPM is on a different host) |
-| Forward Port | `8080` |
+| Forward Port | Value from `STIRLING_PORT` in `.env` (default: `8080`) |
 | Block Common Exploits | ✅ |
 | Websockets Support | ✅ |
 

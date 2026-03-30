@@ -168,4 +168,3 @@ pdf-editor-suite/
 MIT — see [LICENSE](LICENSE).
 
 Stirling-PDF is licensed under AGPL-3.0 by its authors.
-"# pdf-editor-suite" 

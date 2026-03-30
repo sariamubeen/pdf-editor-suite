@@ -24,7 +24,12 @@ set -euo pipefail
 
 # ── Defaults ─────────────────────────────────────────────────────────────────
 
-LOCAL_URL="http://127.0.0.1:8080"
+# Read port from .env if available
+SCRIPT_DIR_V="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STIRLING_PORT=$(grep -E '^STIRLING_PORT=' "$SCRIPT_DIR_V/.env" 2>/dev/null | cut -d= -f2)
+STIRLING_PORT="${STIRLING_PORT:-8080}"
+
+LOCAL_URL="http://127.0.0.1:${STIRLING_PORT}"
 PUBLIC_URL=""
 ADMIN_USER="admin"
 ADMIN_PASS=""
@@ -336,23 +341,23 @@ echo ""
 
 echo -e "${CYAN}── Port & Binding ──────────────────────────────────────${NC}"
 
-# 6.1 Port 8080 binding
+# 6.1 Port binding
 BINDING=$(docker port "$CONTAINER_NAME" 8080 2>/dev/null || echo "none")
 if echo "$BINDING" | grep -q "127.0.0.1"; then
-    pass "Port 8080 bound to localhost only (secure)"
+    pass "Port ${STIRLING_PORT} bound to localhost only (secure — use with NPM)"
 elif echo "$BINDING" | grep -q "0.0.0.0"; then
-    warn "Port 8080 bound to 0.0.0.0 (publicly accessible — should be localhost only)"
+    pass "Port ${STIRLING_PORT} bound to all interfaces (direct LAN access)"
 else
     info "Port binding: $BINDING"
 fi
 
-# 6.2 Check port is not exposed beyond localhost
+# 6.2 Check port is listening
 if command -v ss &>/dev/null; then
-    LISTENING=$(ss -tlnp 2>/dev/null | grep ":8080" || echo "")
-    if echo "$LISTENING" | grep -q "127.0.0.1"; then
-        pass "Confirmed: port 8080 only listening on localhost"
-    elif echo "$LISTENING" | grep -q "0.0.0.0\|:::"; then
-        warn "Port 8080 may be publicly accessible"
+    LISTENING=$(ss -tlnp 2>/dev/null | grep ":${STIRLING_PORT}" || echo "")
+    if [ -n "$LISTENING" ]; then
+        pass "Confirmed: port ${STIRLING_PORT} is listening"
+    else
+        warn "Port ${STIRLING_PORT} not found in listening sockets"
     fi
 fi
 

@@ -64,6 +64,13 @@ fi
 
 log "Environment file ready"
 
+# ── Read port from .env ─────────────────────────────────────────────────────
+
+STIRLING_PORT=$(grep -E '^STIRLING_PORT=' .env 2>/dev/null | cut -d= -f2)
+STIRLING_PORT="${STIRLING_PORT:-8080}"
+
+log "Using port: $STIRLING_PORT"
+
 # ── Pull and start ──────────────────────────────────────────────────────────
 
 log "Pulling Stirling-PDF image..."
@@ -78,7 +85,7 @@ log "Waiting for Stirling-PDF to become healthy..."
 ATTEMPTS=0
 MAX_ATTEMPTS=30
 until [ "$ATTEMPTS" -ge "$MAX_ATTEMPTS" ]; do
-    if curl -sf http://127.0.0.1:8080/api/v1/info/status &>/dev/null; then
+    if curl -sf http://127.0.0.1:${STIRLING_PORT}/api/v1/info/status &>/dev/null; then
         break
     fi
     ATTEMPTS=$((ATTEMPTS + 1))
@@ -89,7 +96,7 @@ if [ "$ATTEMPTS" -ge "$MAX_ATTEMPTS" ]; then
     warn "Stirling-PDF did not respond within 60 seconds."
     warn "Check logs: $COMPOSE_CMD logs -f stirling-pdf"
 else
-    log "Stirling-PDF is running on http://127.0.0.1:8080"
+    log "Stirling-PDF is running on http://127.0.0.1:${STIRLING_PORT}"
 fi
 
 # ── Summary ─────────────────────────────────────────────────────────────────
@@ -98,12 +105,13 @@ echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════════════════╗${NC}"
 echo -e "${CYAN}║  Setup Complete                                      ║${NC}"
 echo -e "${CYAN}╠══════════════════════════════════════════════════════╣${NC}"
-echo -e "${CYAN}║${NC}  Internal URL : http://127.0.0.1:8080               ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}  Internal URL : http://127.0.0.1:${STIRLING_PORT}               ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}  Container    : stirling-pdf                        ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}                                                     ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}  ${YELLOW}Next steps:${NC}                                       ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}  1. Add proxy host in Nginx Proxy Manager           ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}     → Forward pdf.yourdomain.com → 127.0.0.1:8080  ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}  1. Access directly via http://SERVER_IP:${STIRLING_PORT}       ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}     OR add proxy host in Nginx Proxy Manager        ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}     → Forward pdf.yourdomain.com → 127.0.0.1:${STIRLING_PORT}  ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}     → Enable SSL (Let's Encrypt)                    ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}  2. Login and change admin password                 ${CYAN}║${NC}"
 echo -e "${CYAN}║${NC}  3. (Optional) Run generate-cert.sh for custom cert ${CYAN}║${NC}"
