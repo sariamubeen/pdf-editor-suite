@@ -1,0 +1,17 @@
+# Environment files (contain passwords)
+.env
+
+# Server data (persistent volumes — don't commit)
+server/data/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
