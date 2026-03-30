@@ -94,14 +94,7 @@ if ($RequireLogin -eq $true) {
 
         # Authenticate and get session cookie
         $Session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
-        $LoginResponse = Invoke-WebRequest -Uri "$PDFEditorURL/login" `
-            -Method POST `
-            -Body $LoginBody `
-            -WebSession $Session `
-            -UseBasicParsing `
-            -MaximumRedirection 5 `
-            -TimeoutSec 15 `
-            -ErrorAction Stop
+        $LoginResponse = Invoke-WebRequest -Uri "$PDFEditorURL/login" -Method POST -Body $LoginBody -WebSession $Session -UseBasicParsing -MaximumRedirection 5 -TimeoutSec 15 -ErrorAction Stop
 
         # Extract JSESSIONID cookie from the session
         $SessionCookie = $Session.Cookies.GetCookies($PDFEditorURL) | Where-Object { $_.Name -eq "JSESSIONID" }

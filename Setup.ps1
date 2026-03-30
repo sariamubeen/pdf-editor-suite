@@ -286,9 +286,7 @@ if ($LoginRequired) {
     try {
         $LoginBody = @{ username = $Username; password = $Password }
         $TestSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
-        Invoke-WebRequest -Uri "$ServerURL/login" -Method POST -Body $LoginBody `
-            -WebSession $TestSession -UseBasicParsing -MaximumRedirection 5 `
-            -TimeoutSec 10 -ErrorAction Stop | Out-Null
+        Invoke-WebRequest -Uri "$ServerURL/login" -Method POST -Body $LoginBody -WebSession $TestSession -UseBasicParsing -MaximumRedirection 5 -TimeoutSec 10 -ErrorAction Stop | Out-Null
         Write-Host "         Login successful — credentials verified" -ForegroundColor Green
     }
     catch {
