@@ -4,7 +4,6 @@ REM  PDF Editor Suite - One-Click Installer (fully self-contained)
 REM  by sariamubeen
 REM ============================================================================
 REM  Double-click this file. Nothing else needed.
-REM  It creates all required files, registers the handler, and validates.
 REM ============================================================================
 
 :: Check for admin
@@ -47,14 +46,14 @@ set "DISPLAY_NAME=PDF Editor Suite (Browser)"
 :: ============================================================================
 :: Step 1: Create install directory
 :: ============================================================================
-echo   [1/5] Creating install directory...
+echo   [1/6] Creating install directory...
 if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
 echo         %INSTALL_DIR%
 
 :: ============================================================================
 :: Step 2: Generate all required files directly (no dependencies)
 :: ============================================================================
-echo   [2/5] Creating scripts...
+echo   [2/6] Creating scripts...
 
 :: --- open-pdf.bat (the file association target) ---
 (
@@ -76,7 +75,6 @@ echo $DisplayName = "%DISPLAY_NAME%"
 echo         config.ps1 created
 
 :: --- Open-PDFInBrowser.ps1 (the main handler) ---
-:: Using > and >> to write line by line to avoid any encoding issues
 > "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo param([Parameter(Mandatory=$true,Position=0)][string]$PdfPath)
 >> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo $ErrorActionPreference = "Stop"
 >> "%INSTALL_DIR%\Open-PDFInBrowser.ps1" echo $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
@@ -93,9 +91,9 @@ echo         config.ps1 created
 echo         Open-PDFInBrowser.ps1 created
 
 :: ============================================================================
-:: Step 3: Register file association
+:: Step 3: Register file association (classic method)
 :: ============================================================================
-echo   [3/5] Registering .pdf file handler...
+echo   [3/6] Registering .pdf file handler...
 
 set "BATCH_PATH=%INSTALL_DIR%\open-pdf.bat"
 
@@ -114,21 +112,64 @@ if defined CURRENT_HANDLER (
     )
 )
 
-:: Set .pdf association
+:: Set .pdf association (classic)
 reg add "HKLM\SOFTWARE\Classes\.pdf" /ve /d "%PROGID%" /f >nul 2>&1
 ftype %PROGID%="%BATCH_PATH%" "%%1" >nul 2>&1
 assoc .pdf=%PROGID% >nul 2>&1
-echo         .pdf handler registered
+echo         .pdf handler registered (classic)
 
 :: ============================================================================
-:: Step 4: Create uninstaller in install directory
+:: Step 4: Force Windows 10/11 default app association
 :: ============================================================================
-echo   [4/5] Creating uninstaller...
+echo   [4/6] Setting as Windows default PDF app...
+
+:: Register in OpenWithProgids so it appears in "Open with" list
+reg add "HKLM\SOFTWARE\Classes\.pdf\OpenWithProgids" /v "%PROGID%" /t REG_NONE /f >nul 2>&1
+
+:: Register application capabilities
+reg add "HKLM\SOFTWARE\PDFEditorSuite\Capabilities" /v "ApplicationName" /d "%DISPLAY_NAME%" /f >nul 2>&1
+reg add "HKLM\SOFTWARE\PDFEditorSuite\Capabilities" /v "ApplicationDescription" /d "Opens PDFs in browser-based editor" /f >nul 2>&1
+reg add "HKLM\SOFTWARE\PDFEditorSuite\Capabilities\FileAssociations" /v ".pdf" /d "%PROGID%" /f >nul 2>&1
+reg add "HKLM\SOFTWARE\RegisteredApplications" /v "PDFEditorSuite" /d "SOFTWARE\PDFEditorSuite\Capabilities" /f >nul 2>&1
+
+:: Remove the current user's UserChoice for .pdf so Windows re-evaluates
+:: (This forces Windows to use our ProgId since we set it as default)
+reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.pdf\UserChoice" /f >nul 2>&1
+
+:: Also set the per-user OpenWithList to prefer our handler
+reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.pdf\OpenWithProgids" /v "%PROGID%" /t REG_NONE /f >nul 2>&1
+
+:: Generate DefaultAssociations.xml for GPO deployment
+(
+echo ^<?xml version="1.0" encoding="UTF-8"?^>
+echo ^<DefaultAssociations^>
+echo   ^<Association Identifier=".pdf" ProgId="%PROGID%" ApplicationName="%DISPLAY_NAME%" /^>
+echo ^</DefaultAssociations^>
+) > "%INSTALL_DIR%\DefaultAssociations.xml"
+
+:: Apply DefaultAssociations via local group policy (works on Pro/Enterprise)
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "DefaultAssociationsConfiguration" /d "%INSTALL_DIR%\DefaultAssociations.xml" /f >nul 2>&1
+
+echo         Default app association set
+
+:: Notify shell of changes
+powershell -NoProfile -Command "[System.Runtime.InteropServices.Marshal]::ReleaseComObject([System.Runtime.InteropServices.Marshal]::GetActiveObject('Shell.Application')) 2>$null" >nul 2>&1
+
+:: ============================================================================
+:: Step 5: Create uninstaller in install directory
+:: ============================================================================
+echo   [5/6] Creating uninstaller...
 
 > "%INSTALL_DIR%\Uninstall.bat" echo @echo off
 >> "%INSTALL_DIR%\Uninstall.bat" echo net session ^>nul 2^>^&1
 >> "%INSTALL_DIR%\Uninstall.bat" echo if %%errorlevel%% neq 0 ( powershell -Command "Start-Process '%%~f0' -Verb RunAs" ^& exit /b )
 >> "%INSTALL_DIR%\Uninstall.bat" echo echo Uninstalling PDF Editor Suite...
+>> "%INSTALL_DIR%\Uninstall.bat" echo reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.pdf\UserChoice" /f ^>nul 2^>^&1
+>> "%INSTALL_DIR%\Uninstall.bat" echo reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.pdf\OpenWithProgids" /v "PDFEditorSuite.PDF" /f ^>nul 2^>^&1
+>> "%INSTALL_DIR%\Uninstall.bat" echo reg delete "HKLM\SOFTWARE\Classes\.pdf\OpenWithProgids" /v "PDFEditorSuite.PDF" /f ^>nul 2^>^&1
+>> "%INSTALL_DIR%\Uninstall.bat" echo reg delete "HKLM\SOFTWARE\PDFEditorSuite" /f ^>nul 2^>^&1
+>> "%INSTALL_DIR%\Uninstall.bat" echo reg delete "HKLM\SOFTWARE\RegisteredApplications" /v "PDFEditorSuite" /f ^>nul 2^>^&1
+>> "%INSTALL_DIR%\Uninstall.bat" echo reg delete "HKLM\SOFTWARE\Policies\Microsoft\Windows\System" /v "DefaultAssociationsConfiguration" /f ^>nul 2^>^&1
 >> "%INSTALL_DIR%\Uninstall.bat" echo set "PREV="
 >> "%INSTALL_DIR%\Uninstall.bat" echo for /f "tokens=2*" %%%%a in ('reg query "HKLM\SOFTWARE\Classes\.pdf" /v "PDFEditorSuite_PreviousHandler" 2^^^>nul ^^^| find "REG_SZ"') do set "PREV=%%%%b"
 >> "%INSTALL_DIR%\Uninstall.bat" echo if defined PREV ( reg add "HKLM\SOFTWARE\Classes\.pdf" /ve /d "%%PREV%%" /f ^>nul 2^>^&1 ^& reg delete "HKLM\SOFTWARE\Classes\.pdf" /v "PDFEditorSuite_PreviousHandler" /f ^>nul 2^>^&1 )
@@ -138,12 +179,12 @@ echo   [4/5] Creating uninstaller...
 >> "%INSTALL_DIR%\Uninstall.bat" echo rmdir /s /q "%INSTALL_DIR%" 2^>nul
 >> "%INSTALL_DIR%\Uninstall.bat" echo echo   [OK] Uninstall complete
 >> "%INSTALL_DIR%\Uninstall.bat" echo pause
-echo         Uninstaller created at %INSTALL_DIR%\Uninstall.bat
+echo         Uninstaller created
 
 :: ============================================================================
-:: Step 5: Validate
+:: Step 6: Validate
 :: ============================================================================
-echo   [5/5] Validating...
+echo   [6/6] Validating...
 
 set "ALL_GOOD=1"
 
@@ -153,6 +194,9 @@ if exist "%INSTALL_DIR%\open-pdf.bat" (echo         [OK] open-pdf.bat) else (ech
 
 reg query "HKLM\SOFTWARE\Classes\%PROGID%" >nul 2>&1
 if %errorlevel% equ 0 (echo         [OK] Registry handler) else (echo         [!!] Registry MISSING & set "ALL_GOOD=0")
+
+reg query "HKLM\SOFTWARE\RegisteredApplications" /v "PDFEditorSuite" >nul 2>&1
+if %errorlevel% equ 0 (echo         [OK] Registered as Windows app) else (echo         [!!] App registration MISSING & set "ALL_GOOD=0")
 
 echo.
 
@@ -167,13 +211,15 @@ if "%ALL_GOOD%"=="1" (
     echo   ^|                                                          ^|
     echo   ^|  Uninstall: %INSTALL_DIR%\Uninstall.bat
     echo   +==========================================================+
+    echo.
+    echo   If .pdf still opens in another app, we will open Settings
+    echo   for you now. Select 'PDF Editor Suite (Browser)' for .pdf
+    echo.
+    echo   Opening Windows Default Apps settings...
+    start ms-settings:defaultapps
 ) else (
     echo   Setup finished with errors - review output above.
 )
 
-echo.
-echo   NOTE: On Windows 10/11 you may also need to set the default app:
-echo     Settings ^> Apps ^> Default apps ^> search '.pdf'
-echo     Select '%DISPLAY_NAME%'
 echo.
 pause
