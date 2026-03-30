@@ -1,106 +1,70 @@
 # PDF Editor Suite
 **by sariamubeen**
 
-**Self-hosted PDF editing, annotation, and digital signing — launched directly from a Windows desktop.**
+**Double-click any PDF on Windows -- it opens in a full browser-based editor. Edit, annotate, sign, download.**
 
-Double-click any PDF → browser opens → edit, annotate, sign → download the final PDF. No local PDF editor needed.
+No local PDF software needed. Self-hosted on your private network.
 
 ---
 
-## Architecture
+## How It Works
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  WINDOWS CLIENT                                         │
-│                                                         │
-│  User double-clicks .pdf                                │
-│       │                                                 │
-│       ▼                                                 │
-│  open-pdf.bat  ─►  Open-PDFInBrowser.ps1                │
-│       │                                                 │
-│       ▼                                                 │
-│  Default browser opens https://pdf.example.com          │
-│  PDF file path copied to clipboard                      │
-└────────────────────────┬────────────────────────────────┘
-                         │ HTTPS
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│  LINUX SERVER                                           │
-│                                                         │
-│  Nginx Proxy Manager (HTTPS termination)                │
-│       │                                                 │
-│       ▼                                                 │
-│  Stirling-PDF (Docker)                                  │
-│    ├── Edit PDF (text, images, pages)                   │
-│    ├── Annotate (highlights, drawings, notes)           │
-│    ├── Form filling                                     │
-│    ├── Digital signature (X.509 certificate)            │
-│    ├── Handwritten signature                            │
-│    ├── Merge / split / compress / OCR                   │
-│    └── Download final PDF                               │
-└─────────────────────────────────────────────────────────┘
+Windows Client                          Linux Server (Docker)
++----------------+                    +---------------------------+
+| Double-click   |  Upload PDF via    |  Web App (:8080)          |
+| any .pdf file  |---- HTTP POST ---->|  Accepts upload           |
+|                |                    |  Serves editor page       |
+| Browser opens  |<--- edit URL ------|  Serves PDF files         |
+| ONLYOFFICE     |                    +-------------+-------------+
+| editor         |                                  |
++----------------+                    +-------------v-------------+
+                                      | ONLYOFFICE Document       |
+                                      | Server (:8443)            |
+                                      | Full PDF editor in browser|
+                                      +---------------------------+
 ```
 
 ---
 
 ## Quick Start
 
-### Server (5 minutes)
+### Server (Linux - 5 minutes)
 
 ```bash
 git clone https://github.com/sariamubeen/pdf-editor-suite.git
 cd pdf-editor-suite/server
-chmod +x setup.sh generate-cert.sh
+chmod +x setup.sh
 ./setup.sh
 ```
 
-The setup script will detect your server's private IP and display it. You can access Stirling-PDF directly at `http://<SERVER_IP>:8080`, or optionally add a proxy host in Nginx Proxy Manager. See [Server Setup Guide](docs/SERVER-SETUP.md).
+The setup script will:
+- Detect your server IP
+- Build the web app container
+- Pull ONLYOFFICE Document Server
+- Start everything
+- Show you the URL to use
 
-### Windows Client - One-Click Setup (30 seconds)
+### Windows Client (30 seconds)
 
-1. Copy the `pdf-editor-suite/` folder to the Windows machine
-2. **Double-click `INSTALL.bat`** - that's it!
-3. Enter your server IP when prompted (e.g., `http://192.168.1.50:8080`)
+1. Copy `INSTALL.bat` to the Windows machine
+2. Double-click `INSTALL.bat`
+3. Press Enter to accept default server URL (or type your own)
+4. Done -- double-click any PDF to edit it
 
-To uninstall: double-click `UNINSTALL.bat`.
-
-PDFs will open directly in the browser - no login prompts (login is disabled by default for private networks).
-
-See [Client Setup Guide](docs/CLIENT-SETUP.md).
-
-### Validate Everything
-
-```bash
-# Server validation
-cd pdf-editor-suite/server
-./validate.sh --url https://pdf.yourdomain.com --pass YOUR_ADMIN_PASS --full
-```
-
-```powershell
-# Client validation (on Windows)
-.\Validate-Client.ps1
-```
+To uninstall: double-click `UNINSTALL.bat`
 
 ---
 
-## Deployment Modes
+## What You Get
 
-| Mode | Script | Use Case |
-|------|--------|----------|
-| **Manual** | `Register-PDFHandler.ps1` | Single machine, run interactively as Admin |
-| **GPO / SCCM / Intune** | `Deploy-PDFEditorSuite.ps1` | Domain-joined machines, silent deployment |
-| **Uninstall** | `Unregister-PDFHandler.ps1` | Interactive revert on one machine |
-| **GPO Uninstall** | `Deploy-PDFEditorSuite.ps1 -Uninstall` | Silent removal across domain |
-
-### GPO Deployment
-
-1. Place the `client/` folder on a network share (e.g., `\\fileserver\deploy\pdf-editor-suite\`)
-2. Edit `config.ps1` on the share — set `$PDFEditorURL`
-3. Create a GPO → **Computer Configuration → Policies → Windows Settings → Scripts → Startup**
-4. Add script: `\\fileserver\deploy\pdf-editor-suite\Deploy-PDFEditorSuite.ps1`
-5. Optional parameter: `-ServerURL "https://pdf.yourdomain.com"` (overrides config.ps1)
-
-The script is idempotent, logs to Windows Event Log (`Application → PDFEditorSuite`), and skips machines where it's already installed.
+- **Full PDF editing** in the browser (ONLYOFFICE)
+- **Annotations**: highlights, comments, drawings
+- **Digital signatures**
+- **Form filling**
+- **No manual upload**: double-click PDF, it auto-uploads and opens in editor
+- **No login required** on private networks
+- **Debug logging**: check `%TEMP%\PDFEditorSuite-debug.log` if something goes wrong
 
 ---
 
@@ -109,70 +73,72 @@ The script is idempotent, logs to Windows Event Log (`Application → PDFEditorS
 | Component | Minimum |
 |-----------|---------|
 | Server OS | Any Linux with Docker + Docker Compose |
-| Reverse Proxy | Nginx Proxy Manager (existing) |
+| Server RAM | 4 GB minimum (ONLYOFFICE needs ~2 GB) |
 | Client OS | Windows 10 / 11 / Server 2019+ |
-| Browser | Any modern browser (Chrome, Edge, Firefox) |
-| Network | Client must reach server over HTTP/HTTPS |
+| Browser | Edge or Chrome |
+| Network | Client must reach server on ports 8080 + 8443 |
 
 ---
 
-## What's Included
+## Files
 
 ```
 pdf-editor-suite/
-├── README.md                         # This file
-├── LICENSE
-├── INSTALL.bat                       # Double-click to install on Windows
-├── UNINSTALL.bat                     # Double-click to uninstall
-├── Setup.ps1                         # PowerShell setup (alternative)
-├── .gitignore
-├── server/
-│   ├── docker-compose.yml            # Stirling-PDF container
-│   ├── .env.example                  # Environment template
-│   ├── setup.sh                      # Automated server setup
-│   ├── generate-cert.sh              # X.509 signing certificate generator
-│   └── validate.sh                   # Server health & end-to-end test
-├── client/
-│   ├── config.ps1                    # ⚙ Single config file (edit this)
-│   ├── open-pdf.bat                  # Batch wrapper (file association target)
-│   ├── Open-PDFInBrowser.ps1         # Main handler script
-│   ├── Register-PDFHandler.ps1       # Install file association (run once)
-│   ├── Unregister-PDFHandler.ps1     # Revert file association
-│   ├── Deploy-PDFEditorSuite.ps1     # GPO / SCCM / Intune deployment
-│   └── Validate-Client.ps1           # Client installation validator
-└── docs/
-    ├── SERVER-SETUP.md               # Full server deployment guide
-    ├── CLIENT-SETUP.md               # Windows client install guide
-    └── CERTIFICATE-GUIDE.md          # Digital signature certificate setup
++-- README.md
++-- LICENSE
++-- INSTALL.bat              # Windows one-click installer
++-- UNINSTALL.bat            # Windows uninstaller
++-- server/
+    +-- docker-compose.yml   # ONLYOFFICE + Web App
+    +-- .env.example         # Server configuration
+    +-- setup.sh             # Automated server setup
+    +-- app/
+        +-- app.py           # Flask web app (upload, serve, editor)
+        +-- Dockerfile
+        +-- requirements.txt
 ```
 
 ---
 
-## Success Criteria
+## Configuration
 
-| Criterion | Status |
-|-----------|--------|
-| PDF opened from Windows desktop into browser | ✅ |
-| PDF can be edited (text, annotations, fields) | ✅ |
-| Digital signature can be applied | ✅ |
-| Resulting PDF is valid and tamper-evident | ✅ |
-| No local PDF editor required on client | ✅ |
-| Reverse proxy + HTTPS | ✅ |
-| Fully open-source and self-hosted | ✅ |
+Edit `server/.env`:
+
+```
+SERVER_IP=172.20.4.58        # Your server's private IP
+APP_PORT=8080                # Web app port
+ONLYOFFICE_PORT=8443         # ONLYOFFICE port
+JWT_SECRET=pdfeditorsuite    # Change to something random
+```
+
+---
+
+## Useful Commands
+
+```bash
+cd pdf-editor-suite/server
+
+docker compose logs -f              # View all logs
+docker compose logs -f onlyoffice   # ONLYOFFICE logs only
+docker compose logs -f pdf-editor-app  # Web app logs only
+docker compose restart              # Restart everything
+docker compose down                 # Stop everything
+docker compose up -d --build        # Rebuild and restart
+```
 
 ---
 
 ## Tech Stack
 
-- **[Stirling-PDF](https://github.com/Stirling-Tools/Stirling-PDF)** — Open-source PDF toolkit (AGPL-3.0), 50+ tools, REST API, multi-user auth
-- **Nginx Proxy Manager** — HTTPS termination with Let's Encrypt
-- **PowerShell / Batch** — Windows desktop integration
-- **Docker Compose** — Server deployment
+- **[ONLYOFFICE Document Server](https://github.com/ONLYOFFICE/Docker-DocumentServer)** - PDF editor engine (AGPL-3.0)
+- **Flask** - Python web app for file management
+- **Docker Compose** - Server deployment
+- **Batch / PowerShell** - Windows client integration
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT
 
-Stirling-PDF is licensed under AGPL-3.0 by its authors.
+ONLYOFFICE Document Server is licensed under AGPL-3.0 by its authors.

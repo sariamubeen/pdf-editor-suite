@@ -1,57 +1,60 @@
 # =============================================================================
-# Stirling-PDF — Self-Hosted PDF Editor with Digital Signature Support
-# =============================================================================
-# Deployment: docker compose up -d
-# Access:     http://<SERVER_IP>:8080 (or proxied via Nginx Proxy Manager)
-# Docs:       https://docs.stirlingpdf.com
+# PDF Editor Suite - Docker Compose
+# ONLYOFFICE Document Server + Web App
+# by sariamubeen
 # =============================================================================
 
 services:
-  stirling-pdf:
-    image: docker.stirlingpdf.com/stirlingtools/stirling-pdf:latest
-    container_name: stirling-pdf
+
+  # ONLYOFFICE Document Server - the PDF editor engine
+  onlyoffice:
+    image: onlyoffice/documentserver:latest
+    container_name: onlyoffice
     restart: unless-stopped
-
     ports:
-      - "0.0.0.0:${STIRLING_PORT:-8080}:8080"   # Bind to all interfaces — accessible via private IP
-
-    volumes:
-      - stirling-data:/usr/share/tessdata          # OCR language packs
-      - ./data/configs:/configs                     # Application config
-      - ./data/logs:/logs                           # Log files
-      - ./data/custom-files:/customFiles            # Custom branding / files
-      - ./data/pipeline:/pipeline                   # Automation pipelines
-      - ./data/certs:/certs                         # Signing certificates
-
+      - "0.0.0.0:${ONLYOFFICE_PORT:-8443}:80"
     environment:
-      # ── Authentication ─────────────────────────────────────────────────────
-      # Set REQUIRE_LOGIN=false in .env to disable login (private/LAN networks)
-      - DOCKER_ENABLE_SECURITY=${REQUIRE_LOGIN:-false}
-      - SECURITY_ENABLELOGIN=${REQUIRE_LOGIN:-false}
-      - SECURITY_INITIALLOGIN_USERNAME=${STIRLING_USERNAME:-admin}
-      - SECURITY_INITIALLOGIN_PASSWORD=${STIRLING_ADMIN_PASSWORD:-ChangeMeOnFirstLogin!}
-
-      # ── Locale ─────────────────────────────────────────────────────────────
-      - SYSTEM_DEFAULTLOCALE=en_US
-
-      # ── Auto-Generated Signing Certificate ─────────────────────────────────
-      # Stirling-PDF will create a server certificate on first boot.
-      # For production, replace with your own cert — see generate-cert.sh
-      - SYSTEM_SERVERCERTIFICATE_ENABLED=true
-      - SYSTEM_SERVERCERTIFICATE_ORGANIZATIONNAME=${CERT_ORG_NAME:-My Organization}
-      - SYSTEM_SERVERCERTIFICATE_VALIDITY=365
-      - SYSTEM_SERVERCERTIFICATE_REGENERATEONSTARTUP=false
-
-      # ── Max File Size ──────────────────────────────────────────────────────
-      - SYSTEM_MAXFILESIZE=100
-
+      - JWT_ENABLED=true
+      - JWT_SECRET=${JWT_SECRET:-pdfeditorsuite}
+    volumes:
+      - oo_data:/var/www/onlyoffice/Data
+      - oo_lib:/var/lib/onlyoffice
+      - oo_logs:/var/log/onlyoffice
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/info/status"]
+      test: ["CMD", "curl", "-f", "http://localhost/healthcheck"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 90s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # Web App - handles uploads, serves files, renders editor page
+  app:
+    build: ./app
+    container_name: pdf-editor-app
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:${APP_PORT:-8080}:8080"
+    environment:
+      - JWT_SECRET=${JWT_SECRET:-pdfeditorsuite}
+      - ONLYOFFICE_URL=http://${SERVER_IP:-localhost}:${ONLYOFFICE_PORT:-8443}
+      - APP_URL=http://${SERVER_IP:-localhost}:${APP_PORT:-8080}
+      - UPLOAD_DIR=/app/uploads
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      onlyoffice:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     logging:
       driver: json-file
       options:
@@ -59,5 +62,7 @@ services:
         max-file: "3"
 
 volumes:
-  stirling-data:
-    driver: local
+  oo_data:
+  oo_lib:
+  oo_logs:
+  uploads:

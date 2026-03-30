@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-# PDF Editor Suite — Server Setup
-# =============================================================================
-# Usage:  chmod +x setup.sh && ./setup.sh
-# Tested: Ubuntu 22.04/24.04, Rocky Linux 8/9, Debian 12
+# PDF Editor Suite - Server Setup
+# by sariamubeen
 # =============================================================================
 
 set -euo pipefail
@@ -14,21 +12,21 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-log()  { echo -e "${GREEN}[✓]${NC} $*"; }
-warn() { echo -e "${YELLOW}[!]${NC} $*"; }
-err()  { echo -e "${RED}[✗]${NC} $*" >&2; }
+log()  { echo -e "${GREEN}[OK]${NC} $*"; }
+warn() { echo -e "${YELLOW}[!!]${NC} $*"; }
+err()  { echo -e "${RED}[ERR]${NC} $*" >&2; }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo -e "${CYAN}"
-echo "╔══════════════════════════════════════════════════════╗"
-echo "║       PDF Editor Suite — Server Setup                ║"
-echo "║                                      by sariamubeen ║"
-echo "╚══════════════════════════════════════════════════════╝"
+echo "+==========================================================+"
+echo "|  PDF Editor Suite - Server Setup                          |"
+echo "|                                          by sariamubeen  |"
+echo "+==========================================================+"
 echo -e "${NC}"
 
-# ── Pre-flight checks ───────────────────────────────────────────────────────
+# -- Pre-flight checks -------------------------------------------------------
 
 if ! command -v docker &>/dev/null; then
     err "Docker is not installed. Install it first:"
@@ -48,31 +46,7 @@ fi
 
 log "Docker and Docker Compose detected"
 
-# ── Create data directories ─────────────────────────────────────────────────
-
-log "Creating data directories..."
-mkdir -p data/{configs,logs,custom-files,pipeline,certs}
-
-# ── Environment file ────────────────────────────────────────────────────────
-
-if [ ! -f .env ]; then
-    cp .env.example .env
-    warn "Created .env from template — edit it before proceeding!"
-    warn "  nano $SCRIPT_DIR/.env"
-    echo ""
-    read -rp "Press Enter after editing .env (or Ctrl+C to abort)..."
-fi
-
-log "Environment file ready"
-
-# ── Read port from .env ─────────────────────────────────────────────────────
-
-STIRLING_PORT=$(grep -E '^STIRLING_PORT=' .env 2>/dev/null | cut -d= -f2)
-STIRLING_PORT="${STIRLING_PORT:-8080}"
-
-log "Using port: $STIRLING_PORT"
-
-# ── Detect server private IP ───────────────────────────────────────────────
+# -- Detect server IP ---------------------------------------------------------
 
 SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
 if [ -z "$SERVER_IP" ]; then
@@ -82,21 +56,59 @@ SERVER_IP="${SERVER_IP:-YOUR_SERVER_IP}"
 
 log "Detected server IP: $SERVER_IP"
 
-# ── Pull and start ──────────────────────────────────────────────────────────
+# -- Environment file ---------------------------------------------------------
 
-log "Pulling Stirling-PDF image..."
-$COMPOSE_CMD pull
+if [ ! -f .env ]; then
+    cp .env.example .env
+    sed -i "s/SERVER_IP=.*/SERVER_IP=$SERVER_IP/" .env
+    log "Created .env with detected IP: $SERVER_IP"
+else
+    log "Using existing .env file"
+fi
 
-log "Starting Stirling-PDF..."
+source .env
+
+APP_PORT="${APP_PORT:-8080}"
+ONLYOFFICE_PORT="${ONLYOFFICE_PORT:-8443}"
+
+# -- Build and start ----------------------------------------------------------
+
+log "Building web app..."
+$COMPOSE_CMD build app
+
+log "Pulling ONLYOFFICE Document Server..."
+$COMPOSE_CMD pull onlyoffice
+
+log "Starting services..."
 $COMPOSE_CMD up -d
 
-# ── Wait for healthy ────────────────────────────────────────────────────────
+# -- Wait for ONLYOFFICE (takes a while on first boot) -----------------------
 
-log "Waiting for Stirling-PDF to become healthy..."
+log "Waiting for ONLYOFFICE Document Server to start (this may take 1-2 minutes)..."
 ATTEMPTS=0
-MAX_ATTEMPTS=30
+MAX_ATTEMPTS=60
 until [ "$ATTEMPTS" -ge "$MAX_ATTEMPTS" ]; do
-    if curl -sf http://127.0.0.1:${STIRLING_PORT}/api/v1/info/status &>/dev/null; then
+    if curl -sf http://127.0.0.1:${ONLYOFFICE_PORT}/healthcheck &>/dev/null; then
+        break
+    fi
+    ATTEMPTS=$((ATTEMPTS + 1))
+    sleep 3
+done
+
+if [ "$ATTEMPTS" -ge "$MAX_ATTEMPTS" ]; then
+    warn "ONLYOFFICE did not respond within 3 minutes."
+    warn "Check logs: $COMPOSE_CMD logs -f onlyoffice"
+else
+    log "ONLYOFFICE Document Server is running"
+fi
+
+# -- Wait for web app ---------------------------------------------------------
+
+log "Waiting for web app..."
+ATTEMPTS=0
+MAX_ATTEMPTS=15
+until [ "$ATTEMPTS" -ge "$MAX_ATTEMPTS" ]; do
+    if curl -sf http://127.0.0.1:${APP_PORT}/health &>/dev/null; then
         break
     fi
     ATTEMPTS=$((ATTEMPTS + 1))
@@ -104,34 +116,31 @@ until [ "$ATTEMPTS" -ge "$MAX_ATTEMPTS" ]; do
 done
 
 if [ "$ATTEMPTS" -ge "$MAX_ATTEMPTS" ]; then
-    warn "Stirling-PDF did not respond within 60 seconds."
-    warn "Check logs: $COMPOSE_CMD logs -f stirling-pdf"
+    warn "Web app did not respond."
+    warn "Check logs: $COMPOSE_CMD logs -f pdf-editor-app"
 else
-    log "Stirling-PDF is running on http://127.0.0.1:${STIRLING_PORT}"
+    log "Web app is running"
 fi
 
-# ── Summary ─────────────────────────────────────────────────────────────────
+# -- Summary ------------------------------------------------------------------
 
 echo ""
-echo -e "${CYAN}╔══════════════════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║  Setup Complete                          by sariamubeen ║${NC}"
-echo -e "${CYAN}╠══════════════════════════════════════════════════════════╣${NC}"
-echo -e "${CYAN}║${NC}  Local URL   : http://127.0.0.1:${STIRLING_PORT}                    ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}  Network URL : http://${SERVER_IP}:${STIRLING_PORT}  ${CYAN}${NC}"
-echo -e "${CYAN}║${NC}  Container   : stirling-pdf                             ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}                                                          ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}  ${YELLOW}Next steps:${NC}                                            ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}  1. Access from any machine: http://${SERVER_IP}:${STIRLING_PORT}  ${CYAN}${NC}"
-echo -e "${CYAN}║${NC}  2. Login and change admin password                      ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}  3. (Optional) Run generate-cert.sh for custom cert      ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}  4. Deploy client/ folder to Windows machines            ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}                                                          ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}  ${YELLOW}Client config (client/config.ps1):${NC}                     ${CYAN}║${NC}"
-echo -e "${CYAN}║${NC}  Set \$PDFEditorURL = \"http://${SERVER_IP}:${STIRLING_PORT}\"  ${CYAN}${NC}"
-echo -e "${CYAN}╚══════════════════════════════════════════════════════════╝${NC}"
+echo -e "${CYAN}+==========================================================+${NC}"
+echo -e "${CYAN}|  Setup Complete                          by sariamubeen  |${NC}"
+echo -e "${CYAN}+==========================================================+${NC}"
+echo ""
+echo -e "  PDF Editor:  ${GREEN}http://${SERVER_IP}:${APP_PORT}${NC}"
+echo -e "  ONLYOFFICE:  http://${SERVER_IP}:${ONLYOFFICE_PORT}"
+echo ""
+echo -e "  ${YELLOW}Windows client:${NC}"
+echo -e "  Run INSTALL.bat and enter: ${GREEN}http://${SERVER_IP}:${APP_PORT}${NC}"
+echo ""
+echo -e "  ${YELLOW}Open firewall ports:${NC}"
+echo -e "  sudo ufw allow ${APP_PORT}/tcp"
+echo -e "  sudo ufw allow ${ONLYOFFICE_PORT}/tcp"
 echo ""
 echo "Useful commands:"
-echo "  $COMPOSE_CMD logs -f stirling-pdf   # View logs"
-echo "  $COMPOSE_CMD restart stirling-pdf   # Restart service"
-echo "  $COMPOSE_CMD down                   # Stop service"
-echo "  $COMPOSE_CMD pull && $COMPOSE_CMD up -d  # Update image"
+echo "  $COMPOSE_CMD logs -f             # View all logs"
+echo "  $COMPOSE_CMD restart             # Restart services"
+echo "  $COMPOSE_CMD down                # Stop services"
+echo "  $COMPOSE_CMD up -d --build       # Rebuild and restart"
