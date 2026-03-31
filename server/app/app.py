@@ -130,9 +130,10 @@ input[type=file] { display: none; }
   <a href="/sign">Sign a PDF</a>
   <a href="/download">Download Installer</a>
 </div>
-<div style="margin-top:32px;font-size:11px;color:#bbb">
-  {APP_NAME} | MIT License | ONLYOFFICE (AGPL-3.0) |
-  <a href="https://github.com/sariamubeen/pdf-editor-suite" target="_blank" style="color:#2563eb;text-decoration:none">GitHub</a>
+<div style="margin-top:40px;padding-top:20px;border-top:1px solid #eee;font-size:11px;color:#bbb;line-height:1.8">
+  Powered by <a href="https://github.com/sariamubeen/pdf-editor-suite" target="_blank" style="color:#999;text-decoration:none">pdf-editor-suite</a>
+  <span style="color:#ddd">&middot;</span> MIT License
+  <span style="color:#ddd">&middot;</span> ONLYOFFICE (AGPL-3.0)
 </div>
 </div>
 <script>
