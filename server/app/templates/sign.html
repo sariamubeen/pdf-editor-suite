@@ -130,7 +130,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; m
 </div>
 
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/pdf.worker.min.js';
+var hasPdfJs = typeof pdfjsLib !== 'undefined';
+if (hasPdfJs) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/pdf.worker.min.js';
+}
 
 var pdfDoc = null;
 var currentPage = 1;
@@ -139,13 +142,18 @@ var pdfFile = null;
 var pdfFileName = null;
 var sigUrl = null;
 var scale = 1.5;
-var serverFile = null; // filename if loaded from server (via ?file= param)
+var serverFile = null;
 
 // Signature overlay state
 var sigPlaced = false;
 var sigX = 0, sigY = 0, sigW = 150, sigH = 60;
 var dragging = false, resizing = false;
 var dragOffX = 0, dragOffY = 0;
+
+function showError(msg) {
+  var el = document.querySelector('.upload-state .drop');
+  if (el) el.innerHTML = '<p class="big" style="color:#ef4444">' + msg + '</p>';
+}
 
 // ── Check for existing signature ───────────────────────
 fetch('/api/signature/current').then(function(r) { return r.json(); }).then(function(d) {
@@ -163,13 +171,27 @@ var fileParam = urlParams.get('file');
 if (fileParam) {
   serverFile = fileParam;
   pdfFileName = fileParam.indexOf('_') > -1 ? fileParam.substring(fileParam.indexOf('_') + 1) : fileParam;
-  fetch('/files/' + fileParam).then(function(r) {
-    if (!r.ok) throw new Error('File not found');
+
+  // Show loading state
+  var dropEl = document.querySelector('.upload-state .drop');
+  if (dropEl) dropEl.innerHTML = '<p class="big">Loading ' + pdfFileName + '...</p>';
+
+  fetch('/files/' + encodeURIComponent(fileParam)).then(function(r) {
+    if (!r.ok) throw new Error('File not found on server (HTTP ' + r.status + ')');
     return r.arrayBuffer();
   }).then(function(buf) {
     var data = new Uint8Array(buf);
-    // Create a File object for the sign API
     pdfFile = new File([data], pdfFileName, {type: 'application/pdf'});
+
+    if (!hasPdfJs) {
+      // pdf.js not available - still allow signing but without preview
+      showError('PDF preview not available (pdf.js missing). You can still sign below.');
+      document.getElementById('toolbar').style.display = 'flex';
+      document.getElementById('signBtn').disabled = false;
+      sigPlaced = true;
+      return;
+    }
+
     pdfjsLib.getDocument({data: data}).promise.then(function(pdf) {
       pdfDoc = pdf;
       totalPages = pdf.numPages;
@@ -179,9 +201,11 @@ if (fileParam) {
       document.getElementById('toolbar').style.display = 'flex';
       renderThumbnails();
       renderPage(1);
+    }).catch(function(e) {
+      showError('Failed to render PDF: ' + e.message);
     });
   }).catch(function(e) {
-    console.error('Failed to load PDF from server:', e);
+    showError('Could not load file: ' + e.message);
   });
 }
 
