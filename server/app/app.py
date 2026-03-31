@@ -1,5 +1,5 @@
 """
-PDF Editor Suite - Web App
+SIERA PDF - Web App
 Bridges Windows clients with ONLYOFFICE Document Server.
 Accepts PDF uploads, serves files, and renders the ONLYOFFICE editor.
 """
@@ -30,11 +30,16 @@ def make_token(payload):
     return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
 
+@app.route("/logo.png")
+def logo():
+    return send_from_directory(os.path.join(os.path.dirname(__file__), "bundle"), "siera-logo.png")
+
+
 @app.route("/")
 def index():
     return """<!DOCTYPE html>
 <html>
-<head><title>PDF Editor Suite</title>
+<head><title>SIERA PDF</title>
 <style>
 body { font-family: sans-serif; display: flex; justify-content: center; align-items: center;
        height: 100vh; margin: 0; background: #f5f5f5; }
@@ -48,7 +53,8 @@ input[type=file] { display: none; }
 </style></head>
 <body>
 <div class="box">
-<h1>PDF Editor Suite</h1>
+<img src="/logo.png" alt="SIERA PDF" style="height:60px;margin-bottom:12px">
+<h1>SIERA PDF</h1>
 <div class="upload" onclick="document.getElementById('f').click()">
   <p>Click or drag a PDF here to edit</p>
   <input type="file" id="f" accept=".pdf" onchange="upload(this.files[0])">
@@ -150,7 +156,7 @@ def edit(filename):
     return f"""<!DOCTYPE html>
 <html style="height:100%;margin:0;padding:0;overflow:hidden">
 <head>
-<title>{title} - PDF Editor Suite</title>
+<title>{title} - SIERA PDF</title>
 </head>
 <body style="height:100%;margin:0;padding:0;overflow:hidden">
 <div id="editor" style="position:absolute;top:0;left:0;right:0;bottom:0"></div>
@@ -199,7 +205,7 @@ def signature_page():
 
     return f"""<!DOCTYPE html>
 <html>
-<head><title>My Signature - PDF Editor Suite</title>
+<head><title>My Signature - SIERA PDF</title>
 <style>
 body {{ font-family: sans-serif; margin: 0; background: #f5f5f5; display: flex; justify-content: center; padding: 40px; }}
 .container {{ background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); padding: 32px; max-width: 600px; width: 100%; }}
@@ -352,7 +358,7 @@ a{color:#2563eb}</style></head><body>
 
     return """<!DOCTYPE html>
 <html>
-<head><title>Sign a PDF - PDF Editor Suite</title>
+<head><title>Sign a PDF - SIERA PDF</title>
 <style>
 body { font-family: sans-serif; margin: 0; background: #f5f5f5; display: flex; justify-content: center; padding: 40px; }
 .container { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); padding: 32px; max-width: 500px; width: 100%; }
@@ -560,7 +566,7 @@ def download():
             zf.write(uninstall_path, "UNINSTALL.bat")
 
     buf.seek(0)
-    return send_file(buf, mimetype="application/zip", as_attachment=True, download_name="PDF-Editor-Suite-Setup.zip")
+    return send_file(buf, mimetype="application/zip", as_attachment=True, download_name="SIERA-PDF-Setup.zip")
 
 
 @app.route("/health")
