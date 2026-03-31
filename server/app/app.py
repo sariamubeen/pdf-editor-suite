@@ -127,6 +127,10 @@ input[type=file] { display: none; }
   <a href="/sign">Sign a PDF</a>
   <a href="/download">Download Installer</a>
 </div>
+<div style="margin-top:32px;font-size:11px;color:#bbb">
+  MIT License | ONLYOFFICE (AGPL-3.0) | pdf.js (Apache-2.0) |
+  <a href="https://github.com/sariamubeen/pdf-editor-suite" target="_blank" style="color:#2563eb;text-decoration:none">GitHub</a>
+</div>
 </div>
 <script>
 function upload(file) {
