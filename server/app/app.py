@@ -82,6 +82,11 @@ def logo():
     return send_from_directory(os.path.join(os.path.dirname(__file__), "bundle"), APP_LOGO)
 
 
+@app.route("/icon.ico")
+def icon():
+    return send_from_directory(os.path.join(os.path.dirname(__file__), "bundle"), "siera.ico")
+
+
 @app.route("/static/<path:filename>")
 def static_files(filename):
     return send_from_directory(os.path.join(os.path.dirname(__file__), "static"), filename)
@@ -439,9 +444,6 @@ echo   ^|  {APP_NAME} - Installer{' ' * max(0, 42 - len(APP_NAME))}^|
 echo   +==========================================================+
 echo.
 set "SERVER_URL={APP_URL}"
-set /p SERVER_URL="  Server URL [%SERVER_URL%]: "
-if "%SERVER_URL%"=="" set "SERVER_URL={APP_URL}"
-echo.
 echo   Server: %SERVER_URL%
 echo.
 set "INSTDIR=%ProgramFiles%\\{APP_SHORTNAME}"
@@ -473,11 +475,15 @@ certutil -decode "%B64%" "%TARGET%" >nul 2>&1
 del /q "%B64%" >nul 2>&1
 if not exist "%TARGET%" (echo         ERROR: Failed to create handler & goto :done)
 echo         OK: Open-PDFInBrowser.ps1
+:: Download icon from server
+powershell -NoProfile -Command "Invoke-WebRequest -Uri '%SERVER_URL%/icon.ico' -OutFile '%INSTDIR%\\app.ico' -UseBasicParsing" >nul 2>&1
 echo   [3/6] Registering file handler...
 reg add "HKLM\\SOFTWARE\\Classes\\%PROGID%" /ve /d "%APPNAME%" /f >nul 2>&1
 reg add "HKLM\\SOFTWARE\\Classes\\%PROGID%" /v "FriendlyTypeName" /d "%APPNAME%" /f >nul 2>&1
+reg add "HKLM\\SOFTWARE\\Classes\\%PROGID%\\DefaultIcon" /ve /d "%INSTDIR%\\app.ico,0" /f >nul 2>&1
 reg add "HKLM\\SOFTWARE\\Classes\\%PROGID%\\shell\\open\\command" /ve /d "\\"%BATPATH%\\" \\"%%1\\"" /f >nul 2>&1
 reg add "HKLM\\SOFTWARE\\Classes\\Applications\\open-pdf.bat" /v "FriendlyAppName" /d "%APPNAME%" /f >nul 2>&1
+reg add "HKLM\\SOFTWARE\\Classes\\Applications\\open-pdf.bat\\DefaultIcon" /ve /d "%INSTDIR%\\app.ico,0" /f >nul 2>&1
 reg add "HKLM\\SOFTWARE\\Classes\\Applications\\open-pdf.bat\\shell\\open\\command" /ve /d "\\"%BATPATH%\\" \\"%%1\\"" /f >nul 2>&1
 set "CUR="
 for /f "tokens=2*" %%a in ('reg query "HKLM\\SOFTWARE\\Classes\\.pdf" /ve 2^>nul ^| find "REG_SZ"') do set "CUR=%%b"

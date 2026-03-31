@@ -2,20 +2,18 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>PDF Editor Suite - Client Setup Guide</title>
+<title>Client Setup Guide</title>
 <style>
 @page { margin: 2cm; size: A4; }
 body { font-family: Segoe UI, Arial, sans-serif; font-size: 12pt; line-height: 1.6; color: #333; max-width: 700px; margin: 40px auto; padding: 0 20px; }
 h1 { font-size: 22pt; color: #1a1a1a; border-bottom: 3px solid #2563eb; padding-bottom: 8px; margin-bottom: 4px; }
 h2 { font-size: 15pt; color: #2563eb; margin-top: 28px; }
-h3 { font-size: 12pt; color: #1a1a1a; margin-top: 20px; }
 .subtitle { color: #666; font-size: 11pt; margin-top: 0; }
 .step { display: flex; gap: 12px; margin: 10px 0; }
 .step-num { background: #2563eb; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; flex-shrink: 0; }
 .step-text { padding-top: 3px; }
 .box { background: #f0f7ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin: 16px 0; }
 .box-gray { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; margin: 16px 0; }
-.warning { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 16px; margin: 16px 0; }
 code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 11pt; }
 .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e0e0e0; color: #999; font-size: 9pt; text-align: center; }
 @media print { body { margin: 0; padding: 0; } }
@@ -30,33 +28,31 @@ code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 11p
 
 <div class="step"><div class="step-num">1</div><div class="step-text">Double-click <strong>INSTALL.bat</strong></div></div>
 <div class="step"><div class="step-num">2</div><div class="step-text">If asked for admin permission, click <strong>Yes</strong></div></div>
-<div class="step"><div class="step-num">3</div><div class="step-text">When it asks for the server URL, just press <strong>Enter</strong> to accept the default</div></div>
-<div class="step"><div class="step-num">4</div><div class="step-text">Wait for <strong>"Setup Complete"</strong> and press any key to close</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-text">Wait for <strong>"Setup Complete"</strong> and press any key to close</div></div>
 
-<p>That's it. You're ready to edit PDFs.</p>
+<p>That's it. The server URL is pre-configured. You're ready to use it.</p>
 
 <h2>How to Open a PDF</h2>
 
-<h3>If PDF Editor Suite is your default PDF app</h3>
+<h3>If the app is your default PDF viewer</h3>
 <p>Just <strong>double-click</strong> any PDF file. It will open in the browser editor automatically.</p>
 
 <h3>If another app opens instead (e.g. Adobe, Edge)</h3>
 
 <div class="step"><div class="step-num">1</div><div class="step-text"><strong>Right-click</strong> the PDF file</div></div>
 <div class="step"><div class="step-num">2</div><div class="step-text">Click <strong>Open with</strong></div></div>
-<div class="step"><div class="step-num">3</div><div class="step-text">Select <strong>PDF Editor Suite (Browser)</strong></div></div>
+<div class="step"><div class="step-num">3</div><div class="step-text">Select the app name (shown with the app icon)</div></div>
 
 <p>The PDF will upload to the server and open in the browser editor.</p>
 
-<div class="warning">
-<strong>Don't see "PDF Editor Suite (Browser)" in the list?</strong><br>
-Click "Choose another app" &rarr; scroll down &rarr; "More apps" &rarr; "Look for another app on this PC" &rarr; go to <code>C:\Program Files\PDFEditorSuite\</code> &rarr; select <code>open-pdf.bat</code>
+<div class="box">
+<strong>Don't see the app in the "Open with" list?</strong><br>
+Click "Choose another app" &rarr; scroll down &rarr; "More apps" &rarr; "Look for another app on this PC" &rarr; go to the install folder in Program Files &rarr; select <code>open-pdf.bat</code>
 </div>
 
 <h2>What You Can Do</h2>
 
 <div class="box">
-<strong>In the editor you can:</strong>
 <ul style="margin:8px 0 0 0; padding-left: 20px;">
 <li>View and read PDFs</li>
 <li>Edit text in PDFs</li>
@@ -64,10 +60,19 @@ Click "Choose another app" &rarr; scroll down &rarr; "More apps" &rarr; "Look fo
 <li>Add highlights and annotations</li>
 <li>Add comments</li>
 <li>Draw on the PDF</li>
+<li>Sign PDFs with your own signature</li>
 <li>Download the edited file</li>
 <li>Print</li>
 </ul>
 </div>
+
+<h2>Signing a PDF</h2>
+
+<div class="step"><div class="step-num">1</div><div class="step-text">Open a PDF in the editor</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-text">Click <strong>"Sign This PDF"</strong> in the top toolbar</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-text">If you haven't drawn your signature yet, click <strong>"My Signature"</strong> first</div></div>
+<div class="step"><div class="step-num">4</div><div class="step-text">Click <strong>"Place Signature"</strong>, drag it to the right position</div></div>
+<div class="step"><div class="step-num">5</div><div class="step-text">Click <strong>"Sign &amp; Download"</strong></div></div>
 
 <h2>Troubleshooting</h2>
 
@@ -78,7 +83,7 @@ The server may be down. Contact your IT admin.
 
 <div class="box-gray">
 <strong>PDF doesn't appear in the editor</strong><br>
-Open File Explorer, type <code>%TEMP%</code> in the address bar, and open <code>PDFEditorSuite-debug.log</code> to see what went wrong.
+Check the debug log: open File Explorer, type <code>%TEMP%</code> in the address bar, look for the debug log file.
 </div>
 
 <div class="box-gray">
@@ -87,9 +92,9 @@ Type your name and click OK. This only appears once.
 </div>
 
 <h2>Uninstall</h2>
-<p>Double-click <strong>UNINSTALL.bat</strong>, or run <code>C:\Program Files\PDFEditorSuite\Uninstall.bat</code></p>
+<p>Double-click <strong>UNINSTALL.bat</strong>, or find the uninstaller in the install folder under Program Files.</p>
 
-<div class="footer">PDF Editor Suite &mdash; Internal Use Only</div>
+<div class="footer">Powered by pdf-editor-suite</div>
 
 </body>
 </html>
