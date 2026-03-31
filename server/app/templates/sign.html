@@ -7,17 +7,18 @@
 <script src="/static/pdf.min.js"></script>
 <style>
 * { box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; background: #1a1a2e; color: #e0e0e0; }
-.header { background: #16213e; padding: 12px 24px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #0f3460; }
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a2e; color: #e0e0e0; display: flex; flex-direction: column; }
+.header { background: #16213e; padding: 12px 24px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #0f3460; flex-shrink: 0; }
 .header img { height: 28px; }
 .header h1 { font-size: 16px; margin: 0; color: #fff; font-weight: 500; }
 .header .nav { margin-left: auto; display: flex; gap: 16px; font-size: 13px; }
 .header .nav a { color: #7ec8e3; text-decoration: none; }
 
 /* Layout */
-.app { display: flex; height: calc(100vh - 53px); }
-.sidebar { width: 240px; background: #16213e; border-right: 1px solid #0f3460; display: flex; flex-direction: column; overflow-y: auto; }
-.main { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+.app { display: flex; flex: 1; min-height: 0; }
+.sidebar { width: 240px; background: #16213e; border-right: 1px solid #0f3460; display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; }
+.main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 
 /* Sidebar */
 .sidebar-section { padding: 16px; border-bottom: 1px solid #0f3460; }
@@ -30,7 +31,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; m
 .page-thumb .label { position: absolute; bottom: 4px; right: 6px; background: rgba(0,0,0,0.7); color: white; font-size: 10px; padding: 2px 6px; border-radius: 3px; }
 
 /* Main viewer */
-.viewer { flex: 1; display: flex; align-items: center; justify-content: center; overflow: auto; position: relative; padding: 20px; }
+.viewer { flex: 1; display: flex; align-items: flex-start; justify-content: center; overflow: auto; position: relative; padding: 20px; min-height: 0; }
 .page-container { position: relative; box-shadow: 0 4px 24px rgba(0,0,0,0.4); }
 .page-container canvas { display: block; }
 
@@ -50,7 +51,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; m
 .upload-state input { display: none; }
 
 /* Bottom toolbar */
-.toolbar { background: #16213e; border-top: 1px solid #0f3460; padding: 12px 20px; display: flex; align-items: center; gap: 16px; }
+.toolbar { background: #16213e; border-top: 1px solid #0f3460; padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
 .toolbar .btn { padding: 8px 20px; border: none; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
 .toolbar .btn-primary { background: #2563eb; color: white; }
 .toolbar .btn-primary:hover { background: #1d4ed8; }
@@ -62,7 +63,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; m
 .toolbar input[type=checkbox] { accent-color: #2563eb; }
 
 /* No signature warning */
-.no-sig { background: #fef3cd; color: #856404; padding: 12px 20px; font-size: 13px; text-align: center; }
+.no-sig { background: #fef3cd; color: #856404; padding: 12px 20px; font-size: 13px; text-align: center; flex-shrink: 0; }
 .no-sig a { color: #533f03; font-weight: 600; }
 
 /* Loading */
@@ -455,24 +456,12 @@ function resetAll() {
   sigPlaced = false;
   currentPage = 1;
   totalPages = 0;
-  document.getElementById('uploadView').style.display = 'flex';
-  document.getElementById('pdfView').style.display = 'none';
-  document.getElementById('sidebar').style.display = 'none';
-  document.getElementById('toolbar').style.display = 'none';
-  document.getElementById('sigOverlay').style.display = 'none';
-  document.getElementById('signBtn').disabled = true;
-  document.getElementById('posInfo').textContent = '';
-  document.getElementById('pageThumbs').innerHTML = '';
-  // Reset file input so same file can be selected again
-  var input = document.getElementById('pdfInput');
-  input.value = '';
-  // Restore drop zone text
-  var drop = document.querySelector('.upload-state .drop');
-  if (drop) drop.innerHTML = '<p class="big">Click or drag a PDF here</p><p class="small">Your signature will be placed on the page you choose</p><input type="file" id="pdfInput" accept=".pdf" onchange="loadPdf(this.files[0])">';
   // Remove ?file= from URL so it doesn't auto-load again
   if (window.history.replaceState) {
     window.history.replaceState({}, document.title, '/sign');
   }
+  // Just reload the page for a clean state
+  window.location.href = '/sign';
 }
 </script>
 </body>
