@@ -477,6 +477,8 @@ echo   [3/6] Registering file handler...
 reg add "HKLM\\SOFTWARE\\Classes\\%PROGID%" /ve /d "%APPNAME%" /f >nul 2>&1
 reg add "HKLM\\SOFTWARE\\Classes\\%PROGID%" /v "FriendlyTypeName" /d "%APPNAME%" /f >nul 2>&1
 reg add "HKLM\\SOFTWARE\\Classes\\%PROGID%\\shell\\open\\command" /ve /d "\\"%BATPATH%\\" \\"%%1\\"" /f >nul 2>&1
+reg add "HKLM\\SOFTWARE\\Classes\\Applications\\open-pdf.bat" /v "FriendlyAppName" /d "%APPNAME%" /f >nul 2>&1
+reg add "HKLM\\SOFTWARE\\Classes\\Applications\\open-pdf.bat\\shell\\open\\command" /ve /d "\\"%BATPATH%\\" \\"%%1\\"" /f >nul 2>&1
 set "CUR="
 for /f "tokens=2*" %%a in ('reg query "HKLM\\SOFTWARE\\Classes\\.pdf" /ve 2^>nul ^| find "REG_SZ"') do set "CUR=%%b"
 if defined CUR (if not "%CUR%"=="%PROGID%" (reg add "HKLM\\SOFTWARE\\Classes\\.pdf" /v "{APP_SHORTNAME}_PreviousHandler" /d "%CUR%" /f >nul 2>&1 & echo         Backed up: %CUR%))
