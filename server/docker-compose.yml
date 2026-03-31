@@ -45,6 +45,9 @@ services:
       - APP_URL=http://${SERVER_IP:-localhost}:${APP_PORT:-8080}
       - UPLOAD_DIR=/app/uploads
       - SIGNATURE_DIR=/app/signatures
+      - APP_NAME=${APP_NAME:-SIERA PDF}
+      - APP_SHORTNAME=${APP_SHORTNAME:-SieraPDF}
+      - APP_LOGO=${APP_LOGO:-siera-logo.png}
     volumes:
       - uploads:/app/uploads
       - signatures:/app/signatures

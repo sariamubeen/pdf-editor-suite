@@ -30,6 +30,9 @@ SIGNATURE_DIR = os.environ.get("SIGNATURE_DIR", "/app/signatures")
 JWT_SECRET = os.environ.get("JWT_SECRET", "pdfeditorsuite")
 ONLYOFFICE_URL = os.environ.get("ONLYOFFICE_URL", "http://localhost:8443")
 APP_URL = os.environ.get("APP_URL", "http://localhost:8080")
+APP_NAME = os.environ.get("APP_NAME", "SIERA PDF")
+APP_SHORTNAME = os.environ.get("APP_SHORTNAME", "SieraPDF")
+APP_LOGO = os.environ.get("APP_LOGO", "siera-logo.png")
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(SIGNATURE_DIR, exist_ok=True)
@@ -76,7 +79,7 @@ def process_signature_image(img_bytes):
 
 @app.route("/logo.png")
 def logo():
-    return send_from_directory(os.path.join(os.path.dirname(__file__), "bundle"), "siera-logo.png")
+    return send_from_directory(os.path.join(os.path.dirname(__file__), "bundle"), APP_LOGO)
 
 
 @app.route("/static/<path:filename>")
@@ -90,9 +93,9 @@ def static_files(filename):
 
 @app.route("/")
 def index():
-    return """<!DOCTYPE html>
+    return f"""<!DOCTYPE html>
 <html>
-<head><title>SIERA PDF</title>
+<head><title>{APP_NAME}</title>
 <style>
 * { box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -114,8 +117,8 @@ input[type=file] { display: none; }
 </style></head>
 <body>
 <div class="box">
-<img src="/logo.png" alt="SIERA PDF">
-<h1>SIERA PDF</h1>
+<img src="/logo.png" alt="{APP_NAME}">
+<h1>{APP_NAME}</h1>
 <p class="sub">Edit, annotate, and sign PDFs in your browser</p>
 <div class="upload" onclick="document.getElementById('f').click()">
   <p>Click or drag a PDF here to edit</p>
@@ -128,21 +131,21 @@ input[type=file] { display: none; }
   <a href="/download">Download Installer</a>
 </div>
 <div style="margin-top:32px;font-size:11px;color:#bbb">
-  MIT License | ONLYOFFICE (AGPL-3.0) | pdf.js (Apache-2.0) |
+  {APP_NAME} | MIT License | ONLYOFFICE (AGPL-3.0) |
   <a href="https://github.com/sariamubeen/pdf-editor-suite" target="_blank" style="color:#2563eb;text-decoration:none">GitHub</a>
 </div>
 </div>
 <script>
-function upload(file) {
+function upload(file) {{
   if (!file) return;
   document.getElementById('status').textContent = 'Uploading ' + file.name + '...';
   var fd = new FormData();
   fd.append('file', file);
-  fetch('/api/upload', {method:'POST', body:fd})
-  .then(function(r){return r.json()})
-  .then(function(d){ window.location = d.url; })
-  .catch(function(e){ document.getElementById('status').textContent = 'Error: ' + e; });
-}
+  fetch('/api/upload', {{method:'POST', body:fd}})
+  .then(function(r){{return r.json()}})
+  .then(function(d){{ window.location = d.url; }})
+  .catch(function(e){{ document.getElementById('status').textContent = 'Error: ' + e; }});
+}}
 </script>
 </body></html>"""
 
@@ -206,7 +209,7 @@ def edit(filename):
 
     return f"""<!DOCTYPE html>
 <html style="height:100%;margin:0;padding:0;overflow:hidden">
-<head><title>{title} - SIERA PDF</title>
+<head><title>{title} - {APP_NAME}</title>
 <style>
 .siera-bar {{
   position: relative; z-index: 99999;
@@ -233,7 +236,7 @@ def edit(filename):
 <body style="height:100%;margin:0;padding:0;overflow:hidden;display:flex;flex-direction:column">
 <div class="siera-bar">
   <img src="/logo.png" alt="">
-  <span>SIERA PDF</span>
+  <span>{APP_NAME}</span>
   <div class="spacer"></div>
   <a href="/">Home</a>
   <a href="/signature" target="_blank">My Signature</a>
@@ -268,7 +271,7 @@ def callback():
 
 @app.route("/signature")
 def signature_page():
-    return render_template("signature.html")
+    return render_template("signature.html", APP_NAME=APP_NAME)
 
 
 @app.route("/api/signature/current")
@@ -335,7 +338,7 @@ def delete_signature():
 
 @app.route("/sign")
 def sign_page():
-    return render_template("sign.html")
+    return render_template("sign.html", APP_NAME=APP_NAME)
 
 
 @app.route("/api/sign", methods=["POST"])
@@ -418,17 +421,171 @@ def sign_pdf():
 # Download installer & Health
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def generate_install_bat():
+    """Generate INSTALL.bat with branding and server URL from env."""
+    return f"""@echo off
+setlocal
+cd /d "%~dp0"
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Requesting Administrator privileges...
+    powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+    exit /b
+)
+cd /d "%~dp0"
+title {APP_NAME} - Installer
+echo.
+echo   +==========================================================+
+echo   ^|  {APP_NAME} - Installer{' ' * max(0, 42 - len(APP_NAME))}^|
+echo   +==========================================================+
+echo.
+set "SERVER_URL={APP_URL}"
+set /p SERVER_URL="  Server URL [%SERVER_URL%]: "
+if "%SERVER_URL%"=="" set "SERVER_URL={APP_URL}"
+echo.
+echo   Server: %SERVER_URL%
+echo.
+set "INSTDIR=%ProgramFiles%\\{APP_SHORTNAME}"
+set "PROGID={APP_SHORTNAME}.PDF"
+set "APPNAME={APP_NAME}"
+set "BATPATH=%INSTDIR%\\open-pdf.bat"
+echo   [1/6] Creating install directory...
+if not exist "%INSTDIR%" mkdir "%INSTDIR%"
+if not exist "%INSTDIR%" (echo         ERROR: Cannot create %INSTDIR% & goto :done)
+echo         OK: %INSTDIR%
+echo   [2/6] Creating scripts...
+>"%INSTDIR%\\open-pdf.bat" (
+echo @echo off
+echo powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%%~dp0Open-PDFInBrowser.ps1" "%%~1"
+)
+echo         OK: open-pdf.bat
+>"%INSTDIR%\\config.ps1" (
+echo $PDFEditorURL = "%SERVER_URL%"
+echo $RequireLogin = $false
+echo $InstallDir = "$env:ProgramFiles\\{APP_SHORTNAME}"
+echo $ProgId = "%PROGID%"
+echo $DisplayName = "%APPNAME%"
+)
+echo         OK: config.ps1
+set "B64=%temp%\\{APP_SHORTNAME.lower()}_handler.b64"
+set "TARGET=%INSTDIR%\\Open-PDFInBrowser.ps1"
+>"%B64%" echo cGFyYW0oW1BhcmFtZXRlcihNYW5kYXRvcnk9JHRydWUsUG9zaXRpb249MCldW3N0cmluZ10kUGRmUGF0aCkKCiRsb2dGaWxlID0gSm9pbi1QYXRoIChbU3lzdGVtLklPLlBhdGhdOjpHZXRUZW1wUGF0aCgpKSAiU2llcmFQREYtZGVidWcubG9nIgpmdW5jdGlvbiBMb2coJG1zZykgewogICAgJHRzID0gR2V0LURhdGUgLUZvcm1hdCAieXl5eS1NTS1kZCBISDptbTpzcyIKICAgICIkdHMgICRtc2ciIHwgT3V0LUZpbGUgLUFwcGVuZCAtRmlsZVBhdGggJGxvZ0ZpbGUgLUVuY29kaW5nIFVURjgKfQoKTG9nICI9PT0gU0lFUkEgUERGIEhhbmRsZXIgc3RhcnRlZCA9PT0iCkxvZyAiUGRmUGF0aDogJFBkZlBhdGgiCgouIChKb2luLVBhdGggKFNwbGl0LVBhdGggLVBhcmVudCAkTXlJbnZvY2F0aW9uLk15Q29tbWFuZC5EZWZpbml0aW9uKSAiY29uZmlnLnBzMSIpCkxvZyAiU2VydmVyOiAkUERGRWRpdG9yVVJMIgoKaWYgKC1ub3QgKFRlc3QtUGF0aCAtTGl0ZXJhbFBhdGggJFBkZlBhdGgpKSB7CiAgICBMb2cgIkVSUk9SOiBGaWxlIG5vdCBmb3VuZDogJFBkZlBhdGgiCiAgICBleGl0IDEKfQokUGRmUGF0aCA9IChSZXNvbHZlLVBhdGggLUxpdGVyYWxQYXRoICRQZGZQYXRoKS5QYXRoCiRGaWxlTmFtZSA9IFtTeXN0ZW0uSU8uUGF0aF06OkdldEZpbGVOYW1lKCRQZGZQYXRoKQpMb2cgIkZpbGU6ICRQZGZQYXRoIgoKdHJ5IHsKICAgIExvZyAiVXBsb2FkaW5nIHRvICRQREZFZGl0b3JVUkwvYXBpL3VwbG9hZCAuLi4iCiAgICBBZGQtVHlwZSAtQXNzZW1ibHlOYW1lIFN5c3RlbS5OZXQuSHR0cAogICAgJGNsaWVudCA9IE5ldy1PYmplY3QgU3lzdGVtLk5ldC5IdHRwLkh0dHBDbGllbnQKICAgICRjb250ZW50ID0gTmV3LU9iamVjdCBTeXN0ZW0uTmV0Lkh0dHAuTXVsdGlwYXJ0Rm9ybURhdGFDb250ZW50CiAgICAkZmlsZVN0cmVhbSA9IFtTeXN0ZW0uSU8uRmlsZV06Ok9wZW5SZWFkKCRQZGZQYXRoKQogICAgJGZpbGVDb250ZW50ID0gTmV3LU9iamVjdCBTeXN0ZW0uTmV0Lkh0dHAuU3RyZWFtQ29udGVudCgkZmlsZVN0cmVhbSkKICAgICRmaWxlQ29udGVudC5IZWFkZXJzLkNvbnRlbnRUeXBlID0gTmV3LU9iamVjdCBTeXN0ZW0uTmV0Lkh0dHAuSGVhZGVycy5NZWRpYVR5cGVIZWFkZXJWYWx1ZSgiYXBwbGljYXRpb24vcGRmIikKICAgICRjb250ZW50LkFkZCgkZmlsZUNvbnRlbnQsICJmaWxlIiwgJEZpbGVOYW1lKQogICAgJHJlc3BvbnNlID0gJGNsaWVudC5Qb3N0QXN5bmMoIiRQREZFZGl0b3JVUkwvYXBpL3VwbG9hZCIsICRjb250ZW50KS5SZXN1bHQKICAgICRib2R5ID0gJHJlc3BvbnNlLkNvbnRlbnQuUmVhZEFzU3RyaW5nQXN5bmMoKS5SZXN1bHQKICAgICRmaWxlU3RyZWFtLkNsb3NlKCkKICAgICRjbGllbnQuRGlzcG9zZSgpCiAgICBMb2cgIlJlc3BvbnNlOiAkKCRyZXNwb25zZS5TdGF0dXNDb2RlKSAtICRib2R5IgogICAgJGpzb24gPSAkYm9keSB8IENvbnZlcnRGcm9tLUpzb24KICAgICRlZGl0VXJsID0gJGpzb24udXJsCiAgICBMb2cgIkVkaXQgVVJMOiAkZWRpdFVybCIKICAgIFN0YXJ0LVByb2Nlc3MgJGVkaXRVcmwKICAgIExvZyAiQnJvd3NlciBvcGVuZWQiCn0gY2F0Y2ggewogICAgTG9nICJFUlJPUjogJCgkXy5FeGNlcHRpb24uTWVzc2FnZSkiCiAgICBTdGFydC1Qcm9jZXNzICIkUERGRWRpdG9yVVJMIgp9CgpMb2cgIj09PSBTSUVSQSBQREYGSW5kbGVyIGZpbmlzaGVkID09PSIKZXhpdCAwCg==
+certutil -decode "%B64%" "%TARGET%" >nul 2>&1
+del /q "%B64%" >nul 2>&1
+if not exist "%TARGET%" (echo         ERROR: Failed to create handler & goto :done)
+echo         OK: Open-PDFInBrowser.ps1
+echo   [3/6] Registering file handler...
+reg add "HKLM\\SOFTWARE\\Classes\\%PROGID%" /ve /d "%APPNAME%" /f >nul 2>&1
+reg add "HKLM\\SOFTWARE\\Classes\\%PROGID%" /v "FriendlyTypeName" /d "%APPNAME%" /f >nul 2>&1
+reg add "HKLM\\SOFTWARE\\Classes\\%PROGID%\\shell\\open\\command" /ve /d "\\"%BATPATH%\\" \\"%%1\\"" /f >nul 2>&1
+set "CUR="
+for /f "tokens=2*" %%a in ('reg query "HKLM\\SOFTWARE\\Classes\\.pdf" /ve 2^>nul ^| find "REG_SZ"') do set "CUR=%%b"
+if defined CUR (if not "%CUR%"=="%PROGID%" (reg add "HKLM\\SOFTWARE\\Classes\\.pdf" /v "{APP_SHORTNAME}_PreviousHandler" /d "%CUR%" /f >nul 2>&1 & echo         Backed up: %CUR%))
+reg add "HKLM\\SOFTWARE\\Classes\\.pdf" /ve /d "%PROGID%" /f >nul 2>&1
+ftype %PROGID%="%BATPATH%" "%%1" >nul 2>&1
+assoc .pdf=%PROGID% >nul 2>&1
+echo         OK: .pdf handler registered
+echo   [4/6] Setting as default PDF app...
+reg add "HKLM\\SOFTWARE\\Classes\\.pdf\\OpenWithProgids" /v "%PROGID%" /t REG_NONE /f >nul 2>&1
+reg add "HKLM\\SOFTWARE\\{APP_SHORTNAME}\\Capabilities" /v "ApplicationName" /d "%APPNAME%" /f >nul 2>&1
+reg add "HKLM\\SOFTWARE\\{APP_SHORTNAME}\\Capabilities" /v "ApplicationDescription" /d "{APP_NAME} - PDF Editor" /f >nul 2>&1
+reg add "HKLM\\SOFTWARE\\{APP_SHORTNAME}\\Capabilities\\FileAssociations" /v ".pdf" /d "%PROGID%" /f >nul 2>&1
+reg add "HKLM\\SOFTWARE\\RegisteredApplications" /v "{APP_SHORTNAME}" /d "SOFTWARE\\{APP_SHORTNAME}\\Capabilities" /f >nul 2>&1
+reg delete "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.pdf\\UserChoice" /f >nul 2>&1
+reg add "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.pdf\\OpenWithProgids" /v "%PROGID%" /t REG_NONE /f >nul 2>&1
+echo         OK: Default app set
+echo   [5/6] Creating uninstaller...
+>"%INSTDIR%\\Uninstall.bat" (
+echo @echo off
+echo net session ^>nul 2^>^&1
+echo if %%errorlevel%% neq 0 ^(powershell -Command "Start-Process '%%~f0' -Verb RunAs" ^& exit /b^)
+echo echo Uninstalling {APP_NAME}...
+echo reg delete "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.pdf\\UserChoice" /f ^>nul 2^>^&1
+echo reg delete "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.pdf\\OpenWithProgids" /v "{APP_SHORTNAME}.PDF" /f ^>nul 2^>^&1
+echo reg delete "HKLM\\SOFTWARE\\Classes\\.pdf\\OpenWithProgids" /v "{APP_SHORTNAME}.PDF" /f ^>nul 2^>^&1
+echo reg delete "HKLM\\SOFTWARE\\{APP_SHORTNAME}" /f ^>nul 2^>^&1
+echo reg delete "HKLM\\SOFTWARE\\RegisteredApplications" /v "{APP_SHORTNAME}" /f ^>nul 2^>^&1
+echo reg delete "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System" /v "DefaultAssociationsConfiguration" /f ^>nul 2^>^&1
+echo reg delete "HKLM\\SOFTWARE\\Classes\\{APP_SHORTNAME}.PDF" /f ^>nul 2^>^&1
+echo ftype {APP_SHORTNAME}.PDF= ^>nul 2^>^&1
+echo echo [OK] Removed
+echo rmdir /s /q "%%ProgramFiles%%\\{APP_SHORTNAME}" 2^>nul
+echo echo {APP_NAME} has been uninstalled.
+echo pause
+)
+echo         OK: Uninstaller created
+echo   [6/6] Validating...
+set "FAIL=0"
+if exist "%INSTDIR%\\config.ps1" (echo         [OK] config.ps1) else (echo         [!!] config.ps1 & set "FAIL=1")
+if exist "%INSTDIR%\\Open-PDFInBrowser.ps1" (echo         [OK] Open-PDFInBrowser.ps1) else (echo         [!!] Open-PDFInBrowser.ps1 & set "FAIL=1")
+if exist "%INSTDIR%\\open-pdf.bat" (echo         [OK] open-pdf.bat) else (echo         [!!] open-pdf.bat & set "FAIL=1")
+reg query "HKLM\\SOFTWARE\\Classes\\%PROGID%" >nul 2>&1
+if %errorlevel% equ 0 (echo         [OK] Registry) else (echo         [!!] Registry & set "FAIL=1")
+echo.
+if "%FAIL%"=="0" (
+    echo   +==========================================================+
+    echo   ^|  {APP_NAME} - Setup Complete!{' ' * max(0, 36 - len(APP_NAME))}^|
+    echo   ^|  Double-click any .pdf or use Open with ^> {APP_NAME}{' ' * max(0, 15 - len(APP_NAME))}^|
+    echo   ^|  Server: %SERVER_URL%
+    echo   ^|  Uninstall: %INSTDIR%\\Uninstall.bat
+    echo   +==========================================================+
+) else (echo   Setup had errors. Review output above.)
+:done
+echo.
+pause
+endlocal
+"""
+
+
+def generate_uninstall_bat():
+    """Generate UNINSTALL.bat with branding from env."""
+    return f"""@echo off
+setlocal
+cd /d "%~dp0"
+net session >nul 2>&1
+if %errorlevel% neq 0 (powershell -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs" & exit /b)
+cd /d "%~dp0"
+title {APP_NAME} - Uninstaller
+echo.
+echo   Uninstalling {APP_NAME}...
+echo.
+set "INSTDIR=%ProgramFiles%\\{APP_SHORTNAME}"
+set "PROGID={APP_SHORTNAME}.PDF"
+set "PREV="
+for /f "tokens=2*" %%a in ('reg query "HKLM\\SOFTWARE\\Classes\\.pdf" /v "{APP_SHORTNAME}_PreviousHandler" 2^>nul ^| find "REG_SZ"') do set "PREV=%%b"
+if defined PREV (reg add "HKLM\\SOFTWARE\\Classes\\.pdf" /ve /d "%PREV%" /f >nul 2>&1 & reg delete "HKLM\\SOFTWARE\\Classes\\.pdf" /v "{APP_SHORTNAME}_PreviousHandler" /f >nul 2>&1 & echo   [OK] Restored previous handler) else (reg add "HKLM\\SOFTWARE\\Classes\\.pdf" /ve /d "" /f >nul 2>&1)
+reg delete "HKLM\\SOFTWARE\\Classes\\%PROGID%" /f >nul 2>&1
+ftype %PROGID%= >nul 2>&1
+reg delete "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.pdf\\UserChoice" /f >nul 2>&1
+reg delete "HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.pdf\\OpenWithProgids" /v "%PROGID%" /f >nul 2>&1
+reg delete "HKLM\\SOFTWARE\\Classes\\.pdf\\OpenWithProgids" /v "%PROGID%" /f >nul 2>&1
+reg delete "HKLM\\SOFTWARE\\{APP_SHORTNAME}" /f >nul 2>&1
+reg delete "HKLM\\SOFTWARE\\RegisteredApplications" /v "{APP_SHORTNAME}" /f >nul 2>&1
+reg delete "HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\System" /v "DefaultAssociationsConfiguration" /f >nul 2>&1
+echo   [OK] Registry cleaned
+if exist "%INSTDIR%" (rmdir /s /q "%INSTDIR%" & echo   [OK] Files removed)
+echo.
+echo   {APP_NAME} has been uninstalled.
+echo.
+pause
+endlocal
+"""
+
+
 @app.route("/download")
 def download():
     buf = io.BytesIO()
     bundle_dir = os.path.join(os.path.dirname(__file__), "bundle")
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for fname in ("INSTALL.bat", "PDF-Editor-Suite-Client-Guide.html", "UNINSTALL.bat"):
-            path = os.path.join(bundle_dir, fname)
-            if os.path.exists(path):
-                zf.write(path, fname)
+        # Generate INSTALL.bat and UNINSTALL.bat dynamically with current branding
+        zf.writestr("INSTALL.bat", generate_install_bat())
+        zf.writestr("UNINSTALL.bat", generate_uninstall_bat())
+        # Add client guide
+        guide_path = os.path.join(bundle_dir, "PDF-Editor-Suite-Client-Guide.html")
+        if os.path.exists(guide_path):
+            zf.write(guide_path, f"{APP_NAME} - Client Guide.html")
     buf.seek(0)
-    return send_file(buf, mimetype="application/zip", as_attachment=True, download_name="SIERA-PDF-Setup.zip")
+    return send_file(buf, mimetype="application/zip", as_attachment=True, download_name=f"{APP_SHORTNAME}-Setup.zip")
 
 
 @app.route("/health")
