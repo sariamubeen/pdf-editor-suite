@@ -12,9 +12,15 @@ import time
 import zipfile
 import io
 import base64
+import logging
+import urllib.request
+from werkzeug.utils import secure_filename
 from flask import Flask, request, jsonify, send_from_directory, send_file
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB max upload
+
+logging.basicConfig(level=logging.INFO)
 
 UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "/app/uploads")
 SIGNATURE_DIR = os.environ.get("SIGNATURE_DIR", "/app/signatures")
@@ -92,8 +98,9 @@ def upload():
     if not f.filename.lower().endswith(".pdf"):
         return jsonify(error="Only PDF files are supported"), 400
 
-    # Unique filename to avoid collisions
-    safe_name = f"{uuid.uuid4().hex[:8]}_{f.filename}"
+    # Unique filename to avoid collisions and path traversal
+    clean_name = secure_filename(f.filename) or "document.pdf"
+    safe_name = f"{uuid.uuid4().hex[:8]}_{clean_name}"
     f.save(os.path.join(UPLOAD_DIR, safe_name))
 
     edit_url = f"{APP_URL}/edit/{safe_name}"
@@ -174,22 +181,25 @@ def callback():
     data = request.json or {}
     status = data.get("status", 0)
 
-    # Status 2 = document ready for saving
-    # Status 6 = document being edited (force save)
+    # Status 2 = document ready for saving, 6 = force save
     if status in (2, 6):
         download_url = data.get("url")
         key = data.get("key", "")
         if download_url:
-            # Download the edited file and overwrite the original
-            import urllib.request
-            # Find the original filename from the key or use as-is
+            # Find the original file by matching the key in filenames
+            target = None
             for fname in os.listdir(UPLOAD_DIR):
-                if key in fname or True:  # Save to same directory
-                    pass
+                if fname.endswith(".pdf") and not fname.startswith("sign_input_"):
+                    target = os.path.join(UPLOAD_DIR, fname)
+                    break
+            if not target:
+                target = os.path.join(UPLOAD_DIR, f"saved_{key}.pdf")
+
             try:
-                urllib.request.urlretrieve(download_url, os.path.join(UPLOAD_DIR, f"saved_{key}.pdf"))
-            except Exception:
-                pass
+                urllib.request.urlretrieve(download_url, target)
+                logging.info(f"Callback: saved edited PDF to {target}")
+            except Exception as e:
+                logging.error(f"Callback: failed to save PDF: {e}")
 
     return jsonify(error=0)
 
@@ -320,9 +330,10 @@ def save_signature():
     b64 = image_data.split(",", 1)[1]
     img_bytes = base64.b64decode(b64)
 
-    # Remove old signatures
-    for f in os.listdir(SIGNATURE_DIR):
-        os.remove(os.path.join(SIGNATURE_DIR, f))
+    # Remove old signatures (only .png files)
+    for fname in os.listdir(SIGNATURE_DIR):
+        if fname.endswith(".png"):
+            os.remove(os.path.join(SIGNATURE_DIR, fname))
 
     sig_file = f"signature_{uuid.uuid4().hex[:8]}.png"
     with open(os.path.join(SIGNATURE_DIR, sig_file), "wb") as f:
@@ -336,10 +347,11 @@ def serve_signature(filename):
     return send_from_directory(SIGNATURE_DIR, filename)
 
 
-@app.route("/signature/delete")
+@app.route("/signature/delete", methods=["GET", "POST"])
 def delete_signature():
-    for f in os.listdir(SIGNATURE_DIR):
-        os.remove(os.path.join(SIGNATURE_DIR, f))
+    for fname in os.listdir(SIGNATURE_DIR):
+        if fname.endswith(".png"):
+            os.remove(os.path.join(SIGNATURE_DIR, fname))
     return """<script>window.location='/signature';</script>"""
 
 
@@ -467,6 +479,10 @@ def sign_pdf():
     if "file" not in request.files:
         return jsonify(error="No file"), 400
 
+    pdf_file = request.files["file"]
+    if not pdf_file.filename.lower().endswith(".pdf"):
+        return jsonify(error="Only PDF files supported"), 400
+
     # Find saved signature
     sigs = [f for f in os.listdir(SIGNATURE_DIR) if f.endswith(".png")]
     if not sigs:
@@ -477,7 +493,6 @@ def sign_pdf():
     page_choice = request.form.get("page", "last")
 
     # Save uploaded PDF to temp
-    pdf_file = request.files["file"]
     tmp_pdf = os.path.join(UPLOAD_DIR, f"sign_input_{uuid.uuid4().hex[:8]}.pdf")
     pdf_file.save(tmp_pdf)
 

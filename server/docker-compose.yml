@@ -44,6 +44,7 @@ services:
       - ONLYOFFICE_URL=http://${SERVER_IP:-localhost}:${ONLYOFFICE_PORT:-8443}
       - APP_URL=http://${SERVER_IP:-localhost}:${APP_PORT:-8080}
       - UPLOAD_DIR=/app/uploads
+      - SIGNATURE_DIR=/app/signatures
     volumes:
       - uploads:/app/uploads
       - signatures:/app/signatures
