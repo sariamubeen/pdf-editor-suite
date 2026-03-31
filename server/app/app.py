@@ -209,10 +209,11 @@ def edit(filename):
 <head><title>{title} - SIERA PDF</title>
 <style>
 .siera-bar {{
-  position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
-  background: #16213e; height: 36px; display: flex; align-items: center;
+  position: relative; z-index: 99999;
+  background: #16213e; height: 40px; display: flex; align-items: center;
   padding: 0 16px; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  flex-shrink: 0;
 }}
 .siera-bar img {{ height: 22px; }}
 .siera-bar span {{ color: #fff; font-size: 13px; font-weight: 500; }}
@@ -229,7 +230,7 @@ def edit(filename):
 .siera-bar .spacer {{ flex: 1; }}
 </style>
 </head>
-<body style="height:100%;margin:0;padding:0;overflow:hidden">
+<body style="height:100%;margin:0;padding:0;overflow:hidden;display:flex;flex-direction:column">
 <div class="siera-bar">
   <img src="/logo.png" alt="">
   <span>SIERA PDF</span>
@@ -238,7 +239,7 @@ def edit(filename):
   <a href="/signature" target="_blank">My Signature</a>
   <a href="/sign?file={filename}" class="sign-btn">Sign This PDF</a>
 </div>
-<div id="editor" style="position:absolute;top:36px;left:0;right:0;bottom:0"></div>
+<div id="editor" style="flex:1;min-height:0"></div>
 <script src="{ONLYOFFICE_URL}/web-apps/apps/api/documents/api.js"></script>
 <script>new DocsAPI.DocEditor("editor", {config_json});</script>
 </body></html>"""
