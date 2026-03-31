@@ -136,8 +136,10 @@ var pdfDoc = null;
 var currentPage = 1;
 var totalPages = 0;
 var pdfFile = null;
+var pdfFileName = null;
 var sigUrl = null;
 var scale = 1.5;
+var serverFile = null; // filename if loaded from server (via ?file= param)
 
 // Signature overlay state
 var sigPlaced = false;
@@ -154,6 +156,34 @@ fetch('/api/signature/current').then(function(r) { return r.json(); }).then(func
     document.getElementById('noSigBanner').style.display = 'block';
   }
 });
+
+// ── Auto-load PDF from server if ?file= param ──────────
+var urlParams = new URLSearchParams(window.location.search);
+var fileParam = urlParams.get('file');
+if (fileParam) {
+  serverFile = fileParam;
+  pdfFileName = fileParam.indexOf('_') > -1 ? fileParam.substring(fileParam.indexOf('_') + 1) : fileParam;
+  fetch('/files/' + fileParam).then(function(r) {
+    if (!r.ok) throw new Error('File not found');
+    return r.arrayBuffer();
+  }).then(function(buf) {
+    var data = new Uint8Array(buf);
+    // Create a File object for the sign API
+    pdfFile = new File([data], pdfFileName, {type: 'application/pdf'});
+    pdfjsLib.getDocument({data: data}).promise.then(function(pdf) {
+      pdfDoc = pdf;
+      totalPages = pdf.numPages;
+      document.getElementById('uploadView').style.display = 'none';
+      document.getElementById('pdfView').style.display = 'flex';
+      document.getElementById('sidebar').style.display = 'flex';
+      document.getElementById('toolbar').style.display = 'flex';
+      renderThumbnails();
+      renderPage(1);
+    });
+  }).catch(function(e) {
+    console.error('Failed to load PDF from server:', e);
+  });
+}
 
 // ── PDF drop zone ──────────────────────────────────────
 var pdfDrop = document.getElementById('pdfDrop');
@@ -380,7 +410,7 @@ function signAndDownload() {
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = 'signed_' + pdfFile.name;
+    a.download = 'signed_' + (pdfFileName || pdfFile.name);
     a.click();
     btn.disabled = false;
     btn.textContent = 'Sign & Download';

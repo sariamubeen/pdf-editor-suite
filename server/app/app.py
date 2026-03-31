@@ -202,9 +202,39 @@ def edit(filename):
 
     return f"""<!DOCTYPE html>
 <html style="height:100%;margin:0;padding:0;overflow:hidden">
-<head><title>{title} - SIERA PDF</title></head>
+<head><title>{title} - SIERA PDF</title>
+<style>
+.siera-bar {{
+  position: fixed; top: 0; left: 0; right: 0; z-index: 99999;
+  background: #16213e; height: 36px; display: flex; align-items: center;
+  padding: 0 16px; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}}
+.siera-bar img {{ height: 22px; }}
+.siera-bar span {{ color: #fff; font-size: 13px; font-weight: 500; }}
+.siera-bar a {{
+  color: #7ec8e3; text-decoration: none; font-size: 12px; padding: 4px 12px;
+  border-radius: 4px; transition: all 0.15s;
+}}
+.siera-bar a:hover {{ background: rgba(255,255,255,0.1); color: #fff; }}
+.siera-bar .sign-btn {{
+  background: #2563eb; color: white !important; font-weight: 500;
+  padding: 5px 14px; border-radius: 5px;
+}}
+.siera-bar .sign-btn:hover {{ background: #1d4ed8; }}
+.siera-bar .spacer {{ flex: 1; }}
+</style>
+</head>
 <body style="height:100%;margin:0;padding:0;overflow:hidden">
-<div id="editor" style="position:absolute;top:0;left:0;right:0;bottom:0"></div>
+<div class="siera-bar">
+  <img src="/logo.png" alt="">
+  <span>SIERA PDF</span>
+  <div class="spacer"></div>
+  <a href="/">Home</a>
+  <a href="/signature" target="_blank">My Signature</a>
+  <a href="/sign?file={filename}" class="sign-btn">Sign This PDF</a>
+</div>
+<div id="editor" style="position:absolute;top:36px;left:0;right:0;bottom:0"></div>
 <script src="{ONLYOFFICE_URL}/web-apps/apps/api/documents/api.js"></script>
 <script>new DocsAPI.DocEditor("editor", {config_json});</script>
 </body></html>"""
