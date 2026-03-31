@@ -97,23 +97,23 @@ def index():
 <html>
 <head><title>{APP_NAME}</title>
 <style>
-* { box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-       display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f5f5f5; }
-.box { text-align: center; padding: 48px; background: white; border-radius: 16px;
-       box-shadow: 0 2px 16px rgba(0,0,0,0.08); max-width: 440px; width: 100%; }
-.box img { height: 56px; margin-bottom: 8px; }
-h1 { margin: 0 0 4px; font-size: 24px; }
-.sub { color: #888; font-size: 13px; margin: 0 0 28px; }
-.upload { border: 2px dashed #d0d0d0; padding: 40px 24px; border-radius: 10px; cursor: pointer;
-          transition: all 0.15s; }
-.upload:hover { border-color: #2563eb; background: #f0f6ff; }
-.upload p { margin: 0; color: #888; font-size: 15px; }
-input[type=file] { display: none; }
-.links { margin-top: 28px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
-.links a { color: #2563eb; text-decoration: none; font-size: 13px; font-weight: 500; }
-.links a:hover { text-decoration: underline; }
-#status { margin-top: 16px; font-size: 13px; color: #2563eb; }
+* {{ box-sizing: border-box; }}
+body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+       display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f5f5f5; }}
+.box {{ text-align: center; padding: 48px; background: white; border-radius: 16px;
+       box-shadow: 0 2px 16px rgba(0,0,0,0.08); max-width: 440px; width: 100%; }}
+.box img {{ height: 56px; margin-bottom: 8px; }}
+h1 {{ margin: 0 0 4px; font-size: 24px; }}
+.sub {{ color: #888; font-size: 13px; margin: 0 0 28px; }}
+.upload {{ border: 2px dashed #d0d0d0; padding: 40px 24px; border-radius: 10px; cursor: pointer;
+          transition: all 0.15s; }}
+.upload:hover {{ border-color: #2563eb; background: #f0f6ff; }}
+.upload p {{ margin: 0; color: #888; font-size: 15px; }}
+input[type=file] {{ display: none; }}
+.links {{ margin-top: 28px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }}
+.links a {{ color: #2563eb; text-decoration: none; font-size: 13px; font-weight: 500; }}
+.links a:hover {{ text-decoration: underline; }}
+#status {{ margin-top: 16px; font-size: 13px; color: #2563eb; }}
 </style></head>
 <body>
 <div class="box">
@@ -130,10 +130,8 @@ input[type=file] { display: none; }
   <a href="/sign">Sign a PDF</a>
   <a href="/download">Download Installer</a>
 </div>
-<div style="margin-top:40px;padding-top:20px;border-top:1px solid #eee;font-size:11px;color:#bbb;line-height:1.8">
+<div style="margin-top:40px;padding-top:20px;border-top:1px solid #eee;font-size:11px;color:#bbb">
   Powered by <a href="https://github.com/sariamubeen/pdf-editor-suite" target="_blank" style="color:#999;text-decoration:none">pdf-editor-suite</a>
-  <span style="color:#ddd">&middot;</span> MIT License
-  <span style="color:#ddd">&middot;</span> ONLYOFFICE (AGPL-3.0)
 </div>
 </div>
 <script>
