@@ -448,13 +448,31 @@ function signAndDownload() {
 }
 
 function resetAll() {
-  pdfDoc = null; pdfFile = null; sigPlaced = false;
+  pdfDoc = null;
+  pdfFile = null;
+  pdfFileName = null;
+  serverFile = null;
+  sigPlaced = false;
+  currentPage = 1;
+  totalPages = 0;
   document.getElementById('uploadView').style.display = 'flex';
   document.getElementById('pdfView').style.display = 'none';
   document.getElementById('sidebar').style.display = 'none';
   document.getElementById('toolbar').style.display = 'none';
   document.getElementById('sigOverlay').style.display = 'none';
-  document.getElementById('pdfInput').value = '';
+  document.getElementById('signBtn').disabled = true;
+  document.getElementById('posInfo').textContent = '';
+  document.getElementById('pageThumbs').innerHTML = '';
+  // Reset file input so same file can be selected again
+  var input = document.getElementById('pdfInput');
+  input.value = '';
+  // Restore drop zone text
+  var drop = document.querySelector('.upload-state .drop');
+  if (drop) drop.innerHTML = '<p class="big">Click or drag a PDF here</p><p class="small">Your signature will be placed on the page you choose</p><input type="file" id="pdfInput" accept=".pdf" onchange="loadPdf(this.files[0])">';
+  // Remove ?file= from URL so it doesn't auto-load again
+  if (window.history.replaceState) {
+    window.history.replaceState({}, document.title, '/sign');
+  }
 }
 </script>
 </body>
