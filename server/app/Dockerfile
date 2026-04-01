@@ -19,10 +19,11 @@ RUN mkdir -p /app/static/fonts && \
     curl -sL -o /app/static/fonts/GreatVibes.ttf "https://github.com/google/fonts/raw/main/ofl/greatvibes/GreatVibes-Regular.ttf"
 
 COPY app.py .
+COPY db.py .
 COPY templates/ /app/templates/
 COPY bundle/ /app/bundle/
 
-RUN mkdir -p /app/uploads /app/signatures
+RUN mkdir -p /app/uploads /app/signatures /app/data
 
 EXPOSE 8080
 

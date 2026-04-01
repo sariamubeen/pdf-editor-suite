@@ -90,6 +90,8 @@ canvas { display: block; cursor: crosshair; width: 100%; touch-action: none; }
     <div class="nav">
       <a href="/">Home</a>
       <a href="/sign">Sign a PDF</a>
+      {% if user %}<span style="margin-left:auto;color:#666;font-size:13px">{{ user.name }}</span>
+      <a href="/logout" style="color:#ef4444">Logout</a>{% endif %}
     </div>
 
     <!-- Existing signature -->

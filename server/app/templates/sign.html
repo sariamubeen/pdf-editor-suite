@@ -78,6 +78,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <div class="nav">
     <a href="/">Home</a>
     <a href="/signature">My Signature</a>
+    {% if user %}<span style="color:#7ec8e3;font-size:12px">{{ user.name }}</span>
+    <a href="/logout" style="color:#ef4444">Logout</a>{% endif %}
   </div>
 </div>
 

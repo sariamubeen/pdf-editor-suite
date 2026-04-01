@@ -1,8 +1,7 @@
 """
-SIERA PDF - Web App
-Bridges Windows clients with ONLYOFFICE Document Server.
-Accepts PDF uploads, serves files, and renders the ONLYOFFICE editor.
-Provides signature drawing/upload/type and PDF signing with visual placement.
+SIERA PDF - Web App (Multi-User)
+PDF editor with ONLYOFFICE, signature drawing/upload/type, visual PDF signing.
+Per-user file storage and signatures with simple name+email login.
 """
 
 import os
@@ -16,12 +15,15 @@ import base64
 import logging
 import urllib.request
 from datetime import datetime
+from functools import wraps
 from werkzeug.utils import secure_filename
-from flask import Flask, request, jsonify, send_from_directory, send_file, render_template
+from flask import Flask, request, jsonify, send_from_directory, send_file, render_template, session, redirect, g
 from PIL import Image
+from db import init_db, get_user_by_email, create_user, get_user_by_id
 
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB max upload
+app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB
+app.secret_key = os.environ.get("SESSION_SECRET", "change-me-in-production-xyz")
 
 logging.basicConfig(level=logging.INFO)
 
@@ -37,34 +39,67 @@ APP_LOGO = os.environ.get("APP_LOGO", "siera-logo.png")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(SIGNATURE_DIR, exist_ok=True)
 
+# Initialize database on startup
+init_db()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Auth helpers
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        user_id = session.get("user_id")
+        if not user_id:
+            return redirect(f"/login?next={request.path}")
+        user = get_user_by_id(user_id)
+        if not user:
+            session.clear()
+            return redirect("/login")
+        g.user = user
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.before_request
+def load_user():
+    g.user = None
+    user_id = session.get("user_id")
+    if user_id:
+        g.user = get_user_by_id(user_id)
+
+
+def user_upload_dir(user_id):
+    d = os.path.join(UPLOAD_DIR, str(user_id))
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def user_signature_dir(user_id):
+    d = os.path.join(SIGNATURE_DIR, str(user_id))
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def get_current_signature(user_id):
+    sig_dir = user_signature_dir(user_id)
+    sigs = [f for f in os.listdir(sig_dir) if f.endswith(".png")]
+    return sigs[0] if sigs else None
+
 
 def make_token(payload):
     return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
 
-def get_current_signature():
-    """Return the current signature filename or None."""
-    sigs = [f for f in os.listdir(SIGNATURE_DIR) if f.endswith(".png")]
-    return sigs[0] if sigs else None
-
-
 def process_signature_image(img_bytes):
-    """Crop whitespace and make white background transparent."""
     img = Image.open(io.BytesIO(img_bytes)).convert("RGBA")
     data = list(img.getdata())
-    # Make near-white pixels transparent
-    new_data = []
-    for r, g, b, a in data:
-        if r > 235 and g > 235 and b > 235:
-            new_data.append((r, g, b, 0))
-        else:
-            new_data.append((r, g, b, a))
+    new_data = [(r, g_, b, 0) if r > 235 and g_ > 235 and b > 235 else (r, g_, b, a) for r, g_, b, a in data]
     img.putdata(new_data)
-    # Auto-crop to content
     bbox = img.getbbox()
     if bbox:
         img = img.crop(bbox)
-        # Add small padding
         padded = Image.new("RGBA", (img.width + 20, img.height + 20), (0, 0, 0, 0))
         padded.paste(img, (10, 10))
         img = padded
@@ -93,11 +128,49 @@ def static_files(filename):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# Login / Logout
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "GET":
+        if session.get("user_id"):
+            return redirect("/")
+        return render_template("login.html", APP_NAME=APP_NAME, next=request.args.get("next", "/"))
+
+    name = (request.form.get("name") or "").strip()
+    email = (request.form.get("email") or "").strip().lower()
+
+    if not name or not email or "@" not in email:
+        return render_template("login.html", APP_NAME=APP_NAME, error="Please enter your name and a valid email.",
+                               next=request.form.get("next", "/"))
+
+    user = get_user_by_email(email)
+    if not user:
+        user = create_user(name, email)
+
+    session["user_id"] = user["id"]
+    session["user_name"] = user["name"]
+    session.permanent = True
+
+    next_url = request.args.get("next") or request.form.get("next") or "/"
+    return redirect(next_url)
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/login")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Homepage
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @app.route("/")
+@login_required
 def index():
+    user = g.user
     return f"""<!DOCTYPE html>
 <html>
 <head><title>{APP_NAME}</title>
@@ -119,12 +192,14 @@ input[type=file] {{ display: none; }}
 .links a {{ color: #2563eb; text-decoration: none; font-size: 13px; font-weight: 500; }}
 .links a:hover {{ text-decoration: underline; }}
 #status {{ margin-top: 16px; font-size: 13px; color: #2563eb; }}
+.user-bar {{ margin-bottom: 20px; font-size: 13px; color: #666; }}
+.user-bar a {{ color: #ef4444; text-decoration: none; margin-left: 8px; }}
 </style></head>
 <body>
 <div class="box">
 <img src="/logo.png" alt="{APP_NAME}">
 <h1>{APP_NAME}</h1>
-<p class="sub">Edit, annotate, and sign PDFs in your browser</p>
+<div class="user-bar">Welcome, {user['name']} <a href="/logout">Logout</a></div>
 <div class="upload" onclick="document.getElementById('f').click()">
   <p>Click or drag a PDF here to edit</p>
   <input type="file" id="f" accept=".pdf" onchange="upload(this.files[0])">
@@ -167,24 +242,42 @@ def upload():
         return jsonify(error="Only PDF files are supported"), 400
     clean_name = secure_filename(f.filename) or "document.pdf"
     safe_name = f"{uuid.uuid4().hex[:8]}_{clean_name}"
-    f.save(os.path.join(UPLOAD_DIR, safe_name))
-    edit_url = f"{APP_URL}/edit/{safe_name}"
+
+    user_id = session.get("user_id")
+    if user_id:
+        target_dir = user_upload_dir(user_id)
+        path_prefix = str(user_id)
+    else:
+        target_dir = os.path.join(UPLOAD_DIR, "anonymous")
+        os.makedirs(target_dir, exist_ok=True)
+        path_prefix = "anonymous"
+
+    f.save(os.path.join(target_dir, safe_name))
+    edit_url = f"{APP_URL}/edit/{path_prefix}/{safe_name}"
     return jsonify(url=edit_url, filename=safe_name)
 
 
+@app.route("/files/<path_prefix>/<filename>")
+def serve_file(path_prefix, filename):
+    return send_from_directory(os.path.join(UPLOAD_DIR, path_prefix), filename)
+
+
+# Legacy route for old URLs
 @app.route("/files/<filename>")
-def serve_file(filename):
+def serve_file_legacy(filename):
     return send_from_directory(UPLOAD_DIR, filename)
 
 
-@app.route("/edit/<filename>")
-def edit(filename):
-    filepath = os.path.join(UPLOAD_DIR, filename)
+@app.route("/edit/<path_prefix>/<filename>")
+@login_required
+def edit(path_prefix, filename):
+    filepath = os.path.join(UPLOAD_DIR, path_prefix, filename)
     if not os.path.exists(filepath):
         return "File not found", 404
 
-    file_url = f"{APP_URL}/files/{filename}"
+    file_url = f"{APP_URL}/files/{path_prefix}/{filename}"
     callback_url = f"{APP_URL}/api/callback"
+    user = g.user
 
     config = {
         "document": {
@@ -201,7 +294,7 @@ def edit(filename):
             "callbackUrl": callback_url,
             "mode": "edit",
             "lang": "en",
-            "user": {"id": "user1", "name": "User"},
+            "user": {"id": str(user["id"]), "name": user["name"]},
             "customization": {"autosave": True, "forcesave": True, "compactHeader": False},
         },
     }
@@ -235,6 +328,7 @@ def edit(filename):
 }}
 .siera-bar .sign-btn:hover {{ background: #1d4ed8; }}
 .siera-bar .spacer {{ flex: 1; }}
+.siera-bar .user {{ color: #7ec8e3; font-size: 12px; }}
 </style>
 </head>
 <body style="height:100%;margin:0;padding:0;overflow:hidden;display:flex;flex-direction:column">
@@ -242,14 +336,25 @@ def edit(filename):
   <img src="/logo.png" alt="">
   <span>{APP_NAME}</span>
   <div class="spacer"></div>
+  <span class="user">{user['name']}</span>
   <a href="/">Home</a>
   <a href="/signature" target="_blank">My Signature</a>
-  <a href="/sign?file={filename}" class="sign-btn">Sign This PDF</a>
+  <a href="/sign?file={path_prefix}/{filename}" class="sign-btn">Sign This PDF</a>
 </div>
 <div id="editor" style="flex:1;min-height:0"></div>
 <script src="{ONLYOFFICE_URL}/web-apps/apps/api/documents/api.js"></script>
 <script>new DocsAPI.DocEditor("editor", {config_json});</script>
 </body></html>"""
+
+
+# Legacy edit route
+@app.route("/edit/<filename>")
+@login_required
+def edit_legacy(filename):
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    if os.path.exists(filepath):
+        return edit("anonymous", filename)
+    return "File not found", 404
 
 
 @app.route("/api/callback", methods=["POST"])
@@ -260,33 +365,38 @@ def callback():
         download_url = data.get("url")
         key = data.get("key", "")
         if download_url:
-            target = os.path.join(UPLOAD_DIR, f"saved_{key}.pdf")
+            callbacks_dir = os.path.join(UPLOAD_DIR, "callbacks")
+            os.makedirs(callbacks_dir, exist_ok=True)
+            target = os.path.join(callbacks_dir, f"saved_{key}.pdf")
             try:
                 urllib.request.urlretrieve(download_url, target)
-                logging.info(f"Callback: saved edited PDF to {target}")
+                logging.info(f"Callback: saved to {target}")
             except Exception as e:
-                logging.error(f"Callback: failed to save PDF: {e}")
+                logging.error(f"Callback: failed: {e}")
     return jsonify(error=0)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Signature Management
+# Signature Management (per-user)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @app.route("/signature")
+@login_required
 def signature_page():
-    return render_template("signature.html", APP_NAME=APP_NAME)
+    return render_template("signature.html", APP_NAME=APP_NAME, user=g.user)
 
 
 @app.route("/api/signature/current")
+@login_required
 def signature_current():
-    sig = get_current_signature()
+    sig = get_current_signature(g.user["id"])
     if sig:
-        return jsonify(url=f"/signatures/{sig}")
+        return jsonify(url=f"/signatures/{g.user['id']}/{sig}")
     return jsonify(url=None)
 
 
 @app.route("/api/signature", methods=["POST"])
+@login_required
 def save_signature():
     data = request.json or {}
     image_data = data.get("image", "")
@@ -297,55 +407,59 @@ def save_signature():
     raw_bytes = base64.b64decode(b64)
     img_bytes = process_signature_image(raw_bytes)
 
-    # Remove old signatures
-    for fname in os.listdir(SIGNATURE_DIR):
+    sig_dir = user_signature_dir(g.user["id"])
+    for fname in os.listdir(sig_dir):
         if fname.endswith(".png"):
-            os.remove(os.path.join(SIGNATURE_DIR, fname))
+            os.remove(os.path.join(sig_dir, fname))
 
     sig_file = f"signature_{uuid.uuid4().hex[:8]}.png"
-    with open(os.path.join(SIGNATURE_DIR, sig_file), "wb") as fh:
+    with open(os.path.join(sig_dir, sig_file), "wb") as fh:
         fh.write(img_bytes)
 
     return jsonify(ok=True, filename=sig_file)
 
 
 @app.route("/api/signature/upload", methods=["POST"])
+@login_required
 def upload_signature():
     if "file" not in request.files:
         return jsonify(ok=False, error="No file"), 400
     f = request.files["file"]
     if not f.content_type.startswith("image/"):
         return jsonify(ok=False, error="Not an image"), 400
-
     raw_bytes = f.read()
     processed = process_signature_image(raw_bytes)
     b64 = base64.b64encode(processed).decode("ascii")
     return jsonify(ok=True, image=f"data:image/png;base64,{b64}")
 
 
-@app.route("/signatures/<filename>")
-def serve_signature(filename):
-    return send_from_directory(SIGNATURE_DIR, filename)
+@app.route("/signatures/<int:user_id>/<filename>")
+def serve_signature(user_id, filename):
+    return send_from_directory(user_signature_dir(user_id), filename)
 
 
 @app.route("/signature/delete", methods=["GET", "POST"])
+@login_required
 def delete_signature():
-    for fname in os.listdir(SIGNATURE_DIR):
+    sig_dir = user_signature_dir(g.user["id"])
+    for fname in os.listdir(sig_dir):
         if fname.endswith(".png"):
-            os.remove(os.path.join(SIGNATURE_DIR, fname))
+            os.remove(os.path.join(sig_dir, fname))
     return """<script>window.location='/signature';</script>"""
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# PDF Signing (visual placement)
+# PDF Signing (per-user signature)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @app.route("/sign")
+@login_required
 def sign_page():
-    return render_template("sign.html", APP_NAME=APP_NAME)
+    return render_template("sign.html", APP_NAME=APP_NAME, user=g.user)
 
 
 @app.route("/api/sign", methods=["POST"])
+@login_required
 def sign_pdf():
     from pypdf import PdfReader, PdfWriter
     from reportlab.pdfgen import canvas as rl_canvas
@@ -357,11 +471,11 @@ def sign_pdf():
     if not pdf_file.filename.lower().endswith(".pdf"):
         return jsonify(error="Only PDF files supported"), 400
 
-    sig = get_current_signature()
+    sig = get_current_signature(g.user["id"])
     if not sig:
         return jsonify(error="No signature saved"), 400
 
-    sig_path = os.path.join(SIGNATURE_DIR, sig)
+    sig_path = os.path.join(user_signature_dir(g.user["id"]), sig)
     page_num = int(request.form.get("page", 1))
     x_pct = float(request.form.get("x_pct", 0.7))
     y_pct = float(request.form.get("y_pct", 0.85))
@@ -375,26 +489,21 @@ def sign_pdf():
     try:
         reader = PdfReader(tmp_pdf)
         writer = PdfWriter()
-        target_page_idx = page_num - 1  # 0-indexed
+        target_page_idx = page_num - 1
 
         for i, page in enumerate(reader.pages):
             if i == target_page_idx:
                 page_w = float(page.mediabox.width)
                 page_h = float(page.mediabox.height)
-
-                # Convert percentages to PDF coordinates
-                # Note: PDF y-axis is bottom-up, browser y-axis is top-down
                 sig_w = w_pct * page_w
                 sig_h = h_pct * page_h
                 sig_x = x_pct * page_w
-                sig_y = page_h - (y_pct * page_h) - sig_h  # flip Y
+                sig_y = page_h - (y_pct * page_h) - sig_h
 
-                # Create overlay
                 overlay_buf = io.BytesIO()
                 c = rl_canvas.Canvas(overlay_buf, pagesize=(page_w, page_h))
                 c.drawImage(ImageReader(sig_path), sig_x, sig_y, sig_w, sig_h, mask="auto")
 
-                # Add date text below signature
                 if add_date:
                     date_str = datetime.now().strftime("%Y-%m-%d")
                     c.setFont("Helvetica", 8)
@@ -426,7 +535,6 @@ def sign_pdf():
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def generate_install_bat():
-    """Generate INSTALL.bat with branding and server URL from env."""
     return f"""@echo off
 setlocal
 cd /d "%~dp0"
@@ -545,7 +653,6 @@ endlocal
 
 
 def generate_uninstall_bat():
-    """Generate UNINSTALL.bat with branding from env."""
     return f"""@echo off
 setlocal
 cd /d "%~dp0"
@@ -584,10 +691,8 @@ def download():
     buf = io.BytesIO()
     bundle_dir = os.path.join(os.path.dirname(__file__), "bundle")
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        # Generate INSTALL.bat and UNINSTALL.bat dynamically with current branding
         zf.writestr("INSTALL.bat", generate_install_bat())
         zf.writestr("UNINSTALL.bat", generate_uninstall_bat())
-        # Add client guide
         guide_path = os.path.join(bundle_dir, "PDF-Editor-Suite-Client-Guide.html")
         if os.path.exists(guide_path):
             zf.write(guide_path, f"{APP_NAME} - Client Guide.html")
