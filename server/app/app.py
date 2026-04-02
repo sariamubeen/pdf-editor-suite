@@ -584,7 +584,9 @@ del /q "%B64%" >nul 2>&1
 if not exist "%TARGET%" (echo         ERROR: Failed to create handler & goto :done)
 echo         OK: Open-PDFInBrowser.ps1
 :: Download icon from server
-powershell -NoProfile -Command "Invoke-WebRequest -Uri '%SERVER_URL%/icon.ico' -OutFile '%INSTDIR%\\app.ico' -UseBasicParsing" >nul 2>&1
+echo   Downloading app icon...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '{APP_URL}/icon.ico' -OutFile ('%INSTDIR%' + '\\app.ico') -UseBasicParsing -TimeoutSec 10"
+if exist "%INSTDIR%\\app.ico" (echo         OK: Icon downloaded) else (echo         WARN: Icon download failed - using default)
 echo   [3/6] Registering file handler...
 reg add "HKLM\\SOFTWARE\\Classes\\%PROGID%" /ve /d "%APPNAME%" /f >nul 2>&1
 reg add "HKLM\\SOFTWARE\\Classes\\%PROGID%" /v "FriendlyTypeName" /d "%APPNAME%" /f >nul 2>&1
@@ -629,6 +631,10 @@ echo echo {APP_NAME} has been uninstalled.
 echo pause
 )
 echo         OK: Uninstaller created
+:: Refresh Windows shell icon cache
+echo   Refreshing icon cache...
+ie4uinit.exe -show >nul 2>&1
+powershell -NoProfile -Command "Add-Type 'using System; using System.Runtime.InteropServices; public class S {{ [DllImport(\\\"shell32.dll\\\")] public static extern void SHChangeNotify(int e, int f, IntPtr i1, IntPtr i2); }}'; [S]::SHChangeNotify(0x08000000, 0, [IntPtr]::Zero, [IntPtr]::Zero)" >nul 2>&1
 echo   [6/6] Validating...
 set "FAIL=0"
 if exist "%INSTDIR%\\config.ps1" (echo         [OK] config.ps1) else (echo         [!!] config.ps1 & set "FAIL=1")
