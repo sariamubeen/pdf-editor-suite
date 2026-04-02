@@ -631,10 +631,14 @@ echo echo {APP_NAME} has been uninstalled.
 echo pause
 )
 echo         OK: Uninstaller created
-:: Refresh Windows shell icon cache
-echo   Refreshing icon cache...
+:: Rebuild Windows icon cache
+echo   Refreshing icon cache (explorer will restart)...
 ie4uinit.exe -show >nul 2>&1
-powershell -NoProfile -Command "Add-Type 'using System; using System.Runtime.InteropServices; public class S {{ [DllImport(\\\"shell32.dll\\\")] public static extern void SHChangeNotify(int e, int f, IntPtr i1, IntPtr i2); }}'; [S]::SHChangeNotify(0x08000000, 0, [IntPtr]::Zero, [IntPtr]::Zero)" >nul 2>&1
+taskkill /f /im explorer.exe >nul 2>&1
+del /f /s /q "%LocalAppData%\\IconCache.db" >nul 2>&1
+del /f /s /q "%LocalAppData%\\Microsoft\\Windows\\Explorer\\iconcache*" >nul 2>&1
+start explorer.exe
+timeout /t 2 >nul
 echo   [6/6] Validating...
 set "FAIL=0"
 if exist "%INSTDIR%\\config.ps1" (echo         [OK] config.ps1) else (echo         [!!] config.ps1 & set "FAIL=1")
