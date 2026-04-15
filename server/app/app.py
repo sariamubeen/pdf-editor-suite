@@ -18,12 +18,20 @@ from datetime import datetime
 from functools import wraps
 from werkzeug.utils import secure_filename
 from flask import Flask, request, jsonify, send_from_directory, send_file, render_template, session, redirect, g
+from flask_cors import CORS
 from PIL import Image
 from db import init_db, get_user_by_email, create_user, get_user_by_id
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB
 app.secret_key = os.environ.get("SESSION_SECRET", "change-me-in-production-xyz")
+
+# CORS: allow sharesuite.mup-digital.com (and localhost for dev) for all /api/* routes
+CORS(app, resources={r"/api/*": {"origins": [
+    "https://sharesuite.mup-digital.com",
+    "http://sharesuite.mup-digital.com",
+    "http://localhost:*",
+]}}, supports_credentials=True)
 
 logging.basicConfig(level=logging.INFO)
 
