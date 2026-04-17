@@ -60,9 +60,13 @@ if exist "%INSTDIR%" (
 echo   [4/4] Refreshing icon cache...
 ie4uinit.exe -show >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
-del /f /s /q "%LocalAppData%\IconCache.db" >nul 2>&1
-del /f /s /q "%LocalAppData%\Microsoft\Windows\Explorer\iconcache*" >nul 2>&1
-start explorer.exe
+timeout /t 1 >nul
+del /f /q "%LocalAppData%\IconCache.db" >nul 2>&1
+del /f /q "%LocalAppData%\Microsoft\Windows\Explorer\iconcache*" >nul 2>&1
+powershell -NoProfile -Command "Start-Process explorer.exe" >nul 2>&1
+timeout /t 3 >nul
+tasklist /fi "imagename eq explorer.exe" | find /i "explorer.exe" >nul 2>&1
+if errorlevel 1 start "" explorer.exe
 timeout /t 2 >nul
 
 echo.

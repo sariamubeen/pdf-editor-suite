@@ -284,10 +284,21 @@ echo         OK: Default app registered
 
 echo   Refreshing icon cache (Explorer will restart briefly)...
 ie4uinit.exe -show >nul 2>&1
+:: Delete icon cache files while Explorer is running (needs retry)
+del /f /q "%LocalAppData%\IconCache.db" >nul 2>&1
+del /f /q "%LocalAppData%\Microsoft\Windows\Explorer\iconcache*" >nul 2>&1
+:: Kill Explorer and restart via scheduled task (runs as current user, not admin)
 taskkill /f /im explorer.exe >nul 2>&1
-del /f /s /q "%LocalAppData%\IconCache.db" >nul 2>&1
-del /f /s /q "%LocalAppData%\Microsoft\Windows\Explorer\iconcache*" >nul 2>&1
-start explorer.exe
+timeout /t 1 >nul
+:: Delete cache files now that Explorer is not holding them
+del /f /q "%LocalAppData%\IconCache.db" >nul 2>&1
+del /f /q "%LocalAppData%\Microsoft\Windows\Explorer\iconcache*" >nul 2>&1
+:: Restart Explorer as current interactive user (not admin)
+powershell -NoProfile -Command "Start-Process explorer.exe" >nul 2>&1
+:: Fallback: if still not running after 3 seconds, force start
+timeout /t 3 >nul
+tasklist /fi "imagename eq explorer.exe" | find /i "explorer.exe" >nul 2>&1
+if errorlevel 1 start "" explorer.exe
 timeout /t 2 >nul
 
 echo   [6/6] Creating uninstaller...
@@ -309,8 +320,13 @@ echo reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExt
 echo ftype SieraPDF.PDF= ^>nul 2^>^&1
 echo rmdir /s /q "%%ProgramFiles%%\SieraPDF" 2^>nul
 echo taskkill /f /im explorer.exe ^>nul 2^>^&1
-echo del /f /s /q "%%LocalAppData%%\IconCache.db" ^>nul 2^>^&1
-echo start explorer.exe
+echo timeout /t 1 ^>nul
+echo del /f /q "%%LocalAppData%%\IconCache.db" ^>nul 2^>^&1
+echo del /f /q "%%LocalAppData%%\Microsoft\Windows\Explorer\iconcache*" ^>nul 2^>^&1
+echo powershell -NoProfile -Command "Start-Process explorer.exe" ^>nul 2^>^&1
+echo timeout /t 3 ^>nul
+echo tasklist /fi "imagename eq explorer.exe" ^| find /i "explorer.exe" ^>nul 2^>^&1
+echo if errorlevel 1 start "" explorer.exe
 echo echo.
 echo echo   SIERA PDF has been uninstalled.
 echo echo.
