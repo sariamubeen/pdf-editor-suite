@@ -1,144 +1,85 @@
-# PDF Editor Suite
-**by sariamubeen**
+# SIERA PDF
 
-**Double-click any PDF on Windows -- it opens in a full browser-based editor. Edit, annotate, sign, download.**
-
-No local PDF software needed. Self-hosted on your private network.
+**Windows PDF handler that uploads to MinIO and opens the file in ShareSuite for editing.**
 
 ---
 
-## How It Works
+## How it works
 
 ```
-Windows Client                          Linux Server (Docker)
-+----------------+                    +---------------------------+
-| Double-click   |  Upload PDF via    |  Web App (:8080)          |
-| any .pdf file  |---- HTTP POST ---->|  Accepts upload           |
-|                |                    |  Serves editor page       |
-| Browser opens  |<--- edit URL ------|  Serves PDF files         |
-| ONLYOFFICE     |                    +-------------+-------------+
-| editor         |                                  |
-+----------------+                    +-------------v-------------+
-                                      | ONLYOFFICE Document       |
-                                      | Server (:8443)            |
-                                      | Full PDF editor in browser|
-                                      +---------------------------+
+User double-clicks a PDF (or right-click > Open with > SIERA PDF)
+            |
+            v
+  Handler uploads PDF to MinIO bucket "pdfplugin"
+            |
+            v
+  Browser opens ShareSuite with the MinIO URL as ?pdfUrl=...
+            |
+            v
+  User edits the PDF in ShareSuite
 ```
 
----
+Configuration is baked into the installer:
 
-## Quick Start
-
-### Server (Linux - 5 minutes)
-
-```bash
-git clone https://github.com/sariamubeen/pdf-editor-suite.git
-cd pdf-editor-suite/server
-chmod +x setup.sh
-./setup.sh
-```
-
-The setup script will:
-- Detect your server IP
-- Build the web app container
-- Pull ONLYOFFICE Document Server
-- Start everything
-- Show you the URL to use
-
-### Windows Client (30 seconds)
-
-1. Copy `INSTALL.bat` to the Windows machine
-2. Double-click `INSTALL.bat`
-3. Press Enter to accept default server URL (or type your own)
-4. Done -- double-click any PDF to edit it
-
-To uninstall: double-click `UNINSTALL.bat`
+| Thing | Value |
+|-------|-------|
+| MinIO API | `http://172.20.5.65:9000` |
+| Bucket | `pdfplugin` (public write required) |
+| ShareSuite URL | `https://sharesuite.mup-digital.com/#m=core:a=pdf-generation-frontend:view=pdf-generation-frontend:ctxId=2835:pdfUrl=...` |
+| Install dir | `C:\Program Files\SieraPDF` |
+| ProgId | `SieraPDF.PDF` |
 
 ---
 
-## What You Get
+## Install
 
-- **Full PDF editing** in the browser (ONLYOFFICE)
-- **Annotations**: highlights, comments, drawings
-- **Digital signatures**
-- **Form filling**
-- **No manual upload**: double-click PDF, it auto-uploads and opens in editor
-- **No login required** on private networks
-- **Debug logging**: check `%TEMP%\PDFEditorSuite-debug.log` if something goes wrong
+1. Download `INSTALL.bat` to the Windows machine
+2. Double-click it
+3. Click **Yes** at the admin prompt
+4. Done — SIERA PDF is now registered as a PDF handler with the SIERA icon
 
----
+## Uninstall
 
-## Requirements
-
-| Component | Minimum |
-|-----------|---------|
-| Server OS | Any Linux with Docker + Docker Compose |
-| Server RAM | 4 GB minimum (ONLYOFFICE needs ~2 GB) |
-| Client OS | Windows 10 / 11 / Server 2019+ |
-| Browser | Edge or Chrome |
-| Network | Client must reach server on ports 8080 + 8443 |
+Run `UNINSTALL.bat` or `C:\Program Files\SieraPDF\Uninstall.bat`.
 
 ---
 
-## Files
+## Opening a PDF
 
-```
-pdf-editor-suite/
-+-- README.md
-+-- LICENSE
-+-- INSTALL.bat              # Windows one-click installer
-+-- UNINSTALL.bat            # Windows uninstaller
-+-- server/
-    +-- docker-compose.yml   # ONLYOFFICE + Web App
-    +-- .env.example         # Server configuration
-    +-- setup.sh             # Automated server setup
-    +-- app/
-        +-- app.py           # Flask web app (upload, serve, editor)
-        +-- Dockerfile
-        +-- requirements.txt
+- **Default handler**: Double-click any `.pdf`
+- **Open with menu**: Right-click PDF > Open with > SIERA PDF
+- **Set as default**: Settings > Apps > Default apps > `.pdf` > choose SIERA PDF
+
+---
+
+## MinIO requirements
+
+The `pdfplugin` bucket must allow **anonymous PUT** so the Windows handler can upload without credentials. Set this bucket policy in the MinIO console:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {"AWS": ["*"]},
+      "Action": ["s3:PutObject", "s3:GetObject"],
+      "Resource": ["arn:aws:s3:::pdfplugin/*"]
+    }
+  ]
+}
 ```
 
 ---
 
-## Configuration
+## Debugging
 
-Edit `server/.env`:
+Check the log file at `%TEMP%\SieraPDF-debug.log` — it shows the upload URL, response, and any errors.
 
-```
-SERVER_IP=172.20.4.58        # Your server's private IP
-APP_PORT=8080                # Web app port
-ONLYOFFICE_PORT=8443         # ONLYOFFICE port
-JWT_SECRET=pdfeditorsuite    # Change to something random
-```
-
----
-
-## Useful Commands
-
-```bash
-cd pdf-editor-suite/server
-
-docker compose logs -f              # View all logs
-docker compose logs -f onlyoffice   # ONLYOFFICE logs only
-docker compose logs -f pdf-editor-app  # Web app logs only
-docker compose restart              # Restart everything
-docker compose down                 # Stop everything
-docker compose up -d --build        # Rebuild and restart
-```
-
----
-
-## Tech Stack
-
-- **[ONLYOFFICE Document Server](https://github.com/ONLYOFFICE/Docker-DocumentServer)** - PDF editor engine (AGPL-3.0)
-- **Flask** - Python web app for file management
-- **Docker Compose** - Server deployment
-- **Batch / PowerShell** - Windows client integration
+Open File Explorer, paste `%TEMP%` in the address bar, look for `SieraPDF-debug.log`.
 
 ---
 
 ## License
 
-MIT
-
-ONLYOFFICE Document Server is licensed under AGPL-3.0 by its authors.
+MIT — see [LICENSE](LICENSE).
