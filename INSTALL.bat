@@ -27,7 +27,6 @@ set "PS1PATH=%INSTDIR%\handler.ps1"
 
 if not exist "%INSTDIR%" mkdir "%INSTDIR%"
 
-:: Write handler.ps1 from embedded base64
 set "B64=%TEMP%\siera_h.b64"
 (
 echo cGFyYW0oW1BhcmFtZXRlcihNYW5kYXRvcnk9JHRydWUsUG9zaXRpb249MCldW3N0cmluZ10kUGRm
@@ -49,33 +48,33 @@ echo c2UpKSB7ICRCYXNlID0gImRvY3VtZW50IiB9CiRFeHQgPSBbU3lzdGVtLklPLlBhdGhdOjpHZXR
 echo eHRlbnNpb24oJE9yaWdpbmFsKQppZiAoW3N0cmluZ106OklzTnVsbE9yRW1wdHkoJEV4dCkpIHsg
 echo JEV4dCA9ICIucGRmIiB9CiRVaWQgPSBbZ3VpZF06Ok5ld0d1aWQoKS5Ub1N0cmluZygiTiIpLlN1
 echo YnN0cmluZygwLDgpCiROYW1lID0gIiR7VWlkfV8ke0Jhc2V9JHtFeHR9IgpMb2cgIlVwbG9hZCBh
-echo czogJE5hbWUiCgokTWluSU8gPSAiaHR0cDovLzE3Mi4yMC41LjY1OjkwMDAiCiRCdWNrZXQgPSAi
-echo cGRmcGx1Z2luIgokVXBsb2FkVXJsID0gIiRNaW5JTy8kQnVja2V0LyROYW1lIgoKdHJ5IHsKICAg
-echo IExvZyAiVXBsb2FkaW5nOiAkVXBsb2FkVXJsIgogICAgSW52b2tlLVdlYlJlcXVlc3QgLVVyaSAk
-echo VXBsb2FkVXJsIC1NZXRob2QgUFVUIC1JbkZpbGUgJFBkZlBhdGggLUNvbnRlbnRUeXBlICJhcHBs
-echo aWNhdGlvbi9wZGYiIC1Vc2VCYXNpY1BhcnNpbmcgLVRpbWVvdXRTZWMgMTIwIHwgT3V0LU51bGwK
-echo ICAgIExvZyAiVXBsb2FkIE9LIgoKICAgIEFkZC1UeXBlIC1Bc3NlbWJseU5hbWUgU3lzdGVtLldl
-echo YgogICAgJEVuY29kZWQgPSBbU3lzdGVtLldlYi5IdHRwVXRpbGl0eV06OlVybEVuY29kZSgkVXBs
-echo b2FkVXJsKQogICAgJFNoYXJlVXJsID0gImh0dHBzOi8vc2hhcmVzdWl0ZS5tdXAtZGlnaXRhbC5j
-echo b20vI209Y29yZTphPXBkZi1nZW5lcmF0aW9uLWZyb250ZW5kOnZpZXc9cGRmLWdlbmVyYXRpb24t
-echo ZnJvbnRlbmQ6Y3R4SWQ9MjgzNTpwZGZVcmw9JEVuY29kZWQiCiAgICBMb2cgIk9wZW5pbmc6ICRT
-echo aGFyZVVybCIKICAgIFN0YXJ0LVByb2Nlc3MgJFNoYXJlVXJsCn0gY2F0Y2ggewogICAgJGVyciA9
-echo ICRfLkV4Y2VwdGlvbi5NZXNzYWdlCiAgICBMb2cgIkVSUk9SOiAkZXJyIgogICAgQWRkLVR5cGUg
-echo LUFzc2VtYmx5TmFtZSBTeXN0ZW0uV2luZG93cy5Gb3JtcwogICAgW1N5c3RlbS5XaW5kb3dzLkZv
-echo cm1zLk1lc3NhZ2VCb3hdOjpTaG93KCJVcGxvYWQgZmFpbGVkOmBuJGVycmBuYG5Mb2c6ICRsb2dG
-echo aWxlIiwgIlNJRVJBIFBERiIsICJPSyIsICJFcnJvciIpIHwgT3V0LU51bGwKICAgIGV4aXQgMQp9
-echo CgpMb2cgIj09PSBEb25lID09PSIKZXhpdCAwCg==
+echo czogJE5hbWUiCgokTWluSU8gPSAiaHR0cHM6Ly9hcGkubWluaW8uZXV0ZWMub3JnIgokQnVja2V0
+echo ID0gInBkZnBsdWdpbiIKJFVwbG9hZFVybCA9ICIkTWluSU8vJEJ1Y2tldC8kTmFtZSIKCnRyeSB7
+echo CiAgICBMb2cgIlVwbG9hZGluZzogJFVwbG9hZFVybCIKICAgIFtOZXQuU2VydmljZVBvaW50TWFu
+echo YWdlcl06OlNlY3VyaXR5UHJvdG9jb2wgPSBbTmV0LlNlY3VyaXR5UHJvdG9jb2xUeXBlXTo6VGxz
+echo MTIKICAgIEludm9rZS1XZWJSZXF1ZXN0IC1VcmkgJFVwbG9hZFVybCAtTWV0aG9kIFBVVCAtSW5G
+echo aWxlICRQZGZQYXRoIC1Db250ZW50VHlwZSAiYXBwbGljYXRpb24vcGRmIiAtVXNlQmFzaWNQYXJz
+echo aW5nIC1UaW1lb3V0U2VjIDEyMCB8IE91dC1OdWxsCiAgICBMb2cgIlVwbG9hZCBPSyIKCiAgICBB
+echo ZGQtVHlwZSAtQXNzZW1ibHlOYW1lIFN5c3RlbS5XZWIKICAgICRFbmNvZGVkID0gW1N5c3RlbS5X
+echo ZWIuSHR0cFV0aWxpdHldOjpVcmxFbmNvZGUoJFVwbG9hZFVybCkKICAgICRTaGFyZVVybCA9ICJo
+echo dHRwczovL3NoYXJlc3VpdGUubXVwLWRpZ2l0YWwuY29tLyNtPWNvcmU6YT1wZGYtZ2VuZXJhdGlv
+echo bi1mcm9udGVuZDp2aWV3PXBkZi1nZW5lcmF0aW9uLWZyb250ZW5kOmN0eElkPTI4MzU6cGRmVXJs
+echo PSRFbmNvZGVkIgogICAgTG9nICJPcGVuaW5nOiAkU2hhcmVVcmwiCiAgICBTdGFydC1Qcm9jZXNz
+echo ICRTaGFyZVVybAp9IGNhdGNoIHsKICAgICRlcnIgPSAkXy5FeGNlcHRpb24uTWVzc2FnZQogICAg
+echo TG9nICJFUlJPUjogJGVyciIKICAgIEFkZC1UeXBlIC1Bc3NlbWJseU5hbWUgU3lzdGVtLldpbmRv
+echo d3MuRm9ybXMKICAgIFtTeXN0ZW0uV2luZG93cy5Gb3Jtcy5NZXNzYWdlQm94XTo6U2hvdygiVXBs
+echo b2FkIGZhaWxlZDpgbiRlcnJgbmBuTG9nOiAkbG9nRmlsZSIsICJTSUVSQSBQREYiLCAiT0siLCAi
+echo RXJyb3IiKSB8IE91dC1OdWxsCiAgICBleGl0IDEKfQoKTG9nICI9PT0gRG9uZSA9PT0iCmV4aXQg
+echo MAo=
 ) > "%B64%"
 certutil -f -decode "%B64%" "%PS1PATH%" >nul 2>&1
 del /q "%B64%" >nul 2>&1
 
-:: Write open-pdf.bat wrapper
 >"%BATPATH%" (
 echo @echo off
 echo powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%%~dp0handler.ps1" "%%~1"
 )
 
-:: Write icon from embedded base64
 set "B64I=%TEMP%\siera_i.b64"
 (
 echo AAABAAMAEBAAAAAAIADYAwAANgAAACAgAAAAACAAIgsAAA4EAAAwMAAAAAAgAMIUAAAwDwAAiVBO
@@ -244,45 +243,37 @@ echo +Sc3/w/yQ05rwUlRmAAAAABJRU5ErkJggg==
 certutil -f -decode "%B64I%" "%ICOPATH%" >nul 2>&1
 del /q "%B64I%" >nul 2>&1
 
-:: Backup current PDF handler
 set "CUR="
 for /f "tokens=2*" %%a in ('reg query "HKLM\SOFTWARE\Classes\.pdf" /ve 2^>nul ^| find "REG_SZ"') do set "CUR=%%b"
 if defined CUR (if not "%CUR%"=="%PROGID%" (reg add "HKLM\SOFTWARE\Classes\.pdf" /v "SieraPDF_PreviousHandler" /d "%CUR%" /f >nul 2>&1))
 
-:: Register ProgId
 reg add "HKLM\SOFTWARE\Classes\%PROGID%" /ve /d "%APPNAME%" /f >nul 2>&1
 reg add "HKLM\SOFTWARE\Classes\%PROGID%" /v "FriendlyTypeName" /d "%APPNAME%" /f >nul 2>&1
 reg add "HKLM\SOFTWARE\Classes\%PROGID%\DefaultIcon" /ve /d "%ICOPATH%,0" /f >nul 2>&1
 reg add "HKLM\SOFTWARE\Classes\%PROGID%\shell\open\command" /ve /d "\"%BATPATH%\" \"%%1\"" /f >nul 2>&1
 
-:: Register in Applications (for Open with menu)
 reg add "HKLM\SOFTWARE\Classes\Applications\open-pdf.bat" /v "FriendlyAppName" /d "%APPNAME%" /f >nul 2>&1
 reg add "HKLM\SOFTWARE\Classes\Applications\open-pdf.bat\DefaultIcon" /ve /d "%ICOPATH%,0" /f >nul 2>&1
 reg add "HKLM\SOFTWARE\Classes\Applications\open-pdf.bat\shell\open\command" /ve /d "\"%BATPATH%\" \"%%1\"" /f >nul 2>&1
 reg add "HKLM\SOFTWARE\Classes\Applications\open-pdf.bat\SupportedTypes" /v ".pdf" /d "" /f >nul 2>&1
 
-:: .pdf association
 reg add "HKLM\SOFTWARE\Classes\.pdf" /ve /d "%PROGID%" /f >nul 2>&1
 reg add "HKLM\SOFTWARE\Classes\.pdf\OpenWithProgids" /v "%PROGID%" /t REG_NONE /f >nul 2>&1
 ftype %PROGID%="%BATPATH%" "%%1" >nul 2>&1
 assoc .pdf=%PROGID% >nul 2>&1
 
-:: Capabilities
 reg add "HKLM\SOFTWARE\SieraPDF\Capabilities" /v "ApplicationName" /d "%APPNAME%" /f >nul 2>&1
 reg add "HKLM\SOFTWARE\SieraPDF\Capabilities" /v "ApplicationDescription" /d "SIERA PDF" /f >nul 2>&1
 reg add "HKLM\SOFTWARE\SieraPDF\Capabilities" /v "ApplicationIcon" /d "%ICOPATH%,0" /f >nul 2>&1
 reg add "HKLM\SOFTWARE\SieraPDF\Capabilities\FileAssociations" /v ".pdf" /d "%PROGID%" /f >nul 2>&1
 reg add "HKLM\SOFTWARE\RegisteredApplications" /v "SieraPDF" /d "SOFTWARE\SieraPDF\Capabilities" /f >nul 2>&1
 
-:: Clear user choice so Windows re-evaluates
 reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.pdf\UserChoice" /f >nul 2>&1
 reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.pdf\OpenWithProgids" /v "%PROGID%" /t REG_NONE /f >nul 2>&1
 
-:: Instant icon refresh (no Explorer restart - just notify shell)
 rundll32.exe shell32.dll,SHChangeNotify 0x08000000,0,0,0 >nul 2>&1
 ie4uinit.exe -show >nul 2>&1
 
-:: Create uninstaller
 >"%INSTDIR%\Uninstall.bat" (
 echo @echo off
 echo net session ^>nul 2^>^&1
@@ -309,9 +300,8 @@ echo pause
 echo   Done.
 echo.
 echo   SIERA PDF is installed. Right-click any PDF ^> Open with ^> SIERA PDF.
-echo   If the icon doesn't update immediately, log out and back in.
 echo.
 echo   Uninstall: %INSTDIR%\Uninstall.bat
 echo.
-timeout /t 3 >nul
+timeout /t 2 >nul
 exit /b 0
